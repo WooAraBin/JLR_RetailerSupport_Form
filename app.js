@@ -1,103 +1,177 @@
-const { Client } = require('@notionhq/client');
+const workshopSelect = document.getElementById('workshopSelect');
+const repairTypeSelect = document.getElementById('repairTypeSelect');
+const vehicleNumberInput = document.getElementById('vehicleNumberInput');
+const commentInput = document.getElementById('commentInput');
+const plannedStartDateInput = document.getElementById('plannedStartDateInput');
+const totalRepairCostBeforeInput = document.getElementById('totalRepairCostBeforeInput');
+const totalPartsCostInput = document.getElementById('totalPartsCostInput');
+const retailerSupportCostInput = document.getElementById('retailerSupportCostInput');
+const jlrkSupportCostInput = document.getElementById('jlrkSupportCostInput');
+const fileInput = document.getElementById('fileInput');
+const fileBtn = document.getElementById('fileBtn');
+const fileNameEl = document.getElementById('fileName');
+const saveBtn = document.getElementById('saveBtn');
+const status = document.getElementById('status');
+const loadingWrap = document.getElementById('loadingWrap');
+const formWrap = document.getElementById('formWrap');
 
-const notion = new Client({ auth: process.env.NOTION_TOKEN });
+let selectedFile = null;
 
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+function setStatus(message, type = '') {
+  status.textContent = message;
+  status.className = 'status ' + type;
+}
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+function fillSelect(selectEl, options) {
+  options.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    selectEl.appendChild(opt);
+  });
+}
+
+// 옵션 로드 (Workshop Select / Repair Type 은 Notion 데이터베이스의 실제 옵션을 그대로 불러옴)
+async function loadOptions() {
+  try {
+    const res = await fetch('/api/options');
+    const data = await res.json();
+
+    fillSelect(workshopSelect, data.workshopOptions);
+    fillSelect(repairTypeSelect, data.repairTypeOptions);
+
+    loadingWrap.style.display = 'none';
+    formWrap.style.display = 'flex';
+  } catch (err) {
+    loadingWrap.querySelector('.loading-text').textContent = '옵션 로딩 실패. 새로고침 해주세요.';
+  }
+}
+
+// 파일 선택
+fileBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (file) {
+    selectedFile = file;
+    fileNameEl.textContent = file.name;
+  } else {
+    selectedFile = null;
+    fileNameEl.textContent = '선택된 파일 없음';
+  }
+});
+
+// 파일을 Notion File Upload API로 업로드하고 file_upload id를 반환
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file, file.name);
+
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || '파일 업로드 실패');
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  return data; // { fileUploadId, fileName }
+}
 
-  const {
-    workshop,
-    repairType,
-    vehicleNumber,
-    customerVehicleNo,
-    plannedStartDate,
-    totalRepairCost,
-    jlrSupportCost,
-    jlrPortion,
-    fileUploadId,
-    fileName
-  } = req.body;
+// 저장
+saveBtn.addEventListener('click', async () => {
+  const workshop = workshopSelect.value;
+  const repairType = repairTypeSelect.value;
+  const vehicleNumber = vehicleNumberInput.value.trim();
+  const comment = commentInput.value.trim();
+  const plannedStartDate = plannedStartDateInput.value;
+  const totalRepairCostBefore = totalRepairCostBeforeInput.value;
+  const totalPartsCost = totalPartsCostInput.value;
+  const retailerSupportCost = retailerSupportCostInput.value;
+  const jlrkSupportCost = jlrkSupportCostInput.value;
 
   if (!workshop) {
-    return res.status(400).json({ error: 'Workshop을 선택해주세요.' });
+    setStatus('Workshop을 선택해주세요.', 'error');
+    return;
   }
 
   if (!repairType) {
-    return res.status(400).json({ error: 'Repair Type을 선택해주세요.' });
+    setStatus('Repair Type을 선택해주세요.', 'error');
+    return;
   }
 
-  if (!vehicleNumber || vehicleNumber.trim() === '') {
-    return res.status(400).json({ error: 'Vehicle Number를 입력해주세요.' });
+  if (!vehicleNumber) {
+    setStatus('Vehicle Number를 입력해주세요.', 'error');
+    return;
   }
+
+  saveBtn.disabled = true;
 
   try {
-    const properties = {
-      // Vehicle Number = 이 데이터베이스의 Title 속성
-      'Vehicle Number': {
-        title: [{ text: { content: vehicleNumber.trim() } }]
-      },
-      'Workshop Select': {
-        select: { name: workshop }
-      },
-      'Repair Type': {
-        select: { name: repairType }
-      }
-    };
+    let fileUploadId = null;
+    let fileName = null;
 
-    if (customerVehicleNo && customerVehicleNo.trim() !== '') {
-      properties['Customer Vehicle No'] = {
-        rich_text: [{ text: { content: customerVehicleNo.trim() } }]
-      };
+    if (selectedFile) {
+      setStatus('파일 업로드 중...', '');
+      const uploaded = await uploadFile(selectedFile);
+      fileUploadId = uploaded.fileUploadId;
+      fileName = uploaded.fileName;
     }
 
-    if (plannedStartDate) {
-      properties['Planned Repair Start Date'] = {
-        date: { start: plannedStartDate }
-      };
-    }
+    setStatus('저장 중...', '');
 
-    if (totalRepairCost !== undefined && totalRepairCost !== '' && totalRepairCost !== null) {
-      properties['Total Repair Cost'] = { number: Number(totalRepairCost) };
-    }
-
-    if (jlrSupportCost !== undefined && jlrSupportCost !== '' && jlrSupportCost !== null) {
-      properties['JLR Support Cost'] = { number: Number(jlrSupportCost) };
-    }
-
-    if (jlrPortion !== undefined && jlrPortion !== '' && jlrPortion !== null) {
-      properties['JLR Portion'] = { number: Number(jlrPortion) };
-    }
-
-    if (fileUploadId) {
-      properties['Files & media'] = {
-        files: [
-          {
-            type: 'file_upload',
-            file_upload: { id: fileUploadId },
-            name: fileName || 'attachment'
-          }
-        ]
-      };
-    }
-
-    await notion.pages.create({
-      parent: { database_id: process.env.NOTION_DATABASE_ID },
-      properties
+    const response = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workshop,
+        repairType,
+        vehicleNumber,
+        comment,
+        plannedStartDate,
+        totalRepairCostBefore,
+        totalPartsCost,
+        retailerSupportCost,
+        jlrkSupportCost,
+        fileUploadId,
+        fileName
+      })
     });
 
-    return res.status(200).json({ success: true });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message || '저장 실패. 다시 시도해주세요.' });
+    const data = await response.json();
+
+    if (response.ok) {
+      setStatus('✅ 저장되었습니다!', 'success');
+      workshopSelect.value = '';
+      repairTypeSelect.value = '';
+      vehicleNumberInput.value = '';
+      commentInput.value = '';
+      plannedStartDateInput.value = '';
+      totalRepairCostBeforeInput.value = '';
+      totalPartsCostInput.value = '';
+      retailerSupportCostInput.value = '';
+      jlrkSupportCostInput.value = '';
+      fileInput.value = '';
+      selectedFile = null;
+      fileNameEl.textContent = '선택된 파일 없음';
+      setTimeout(() => setStatus(''), 3000);
+    } else {
+      setStatus('❌ ' + (data.error || '저장 실패'), 'error');
+    }
+  } catch (err) {
+    setStatus('❌ ' + (err.message || '네트워크 오류. 다시 시도해주세요.'), 'error');
+  } finally {
+    saveBtn.disabled = false;
   }
-};
+});
+
+// Cmd+Enter 저장
+vehicleNumberInput.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    saveBtn.click();
+  }
+});
+
+loadOptions();
