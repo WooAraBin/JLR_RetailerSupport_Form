@@ -19,11 +19,12 @@ module.exports = async (req, res) => {
     workshop,
     repairType,
     vehicleNumber,
-    customerVehicleNo,
+    comment,
     plannedStartDate,
-    totalRepairCost,
-    jlrSupportCost,
-    jlrPortion,
+    totalRepairCostBefore,
+    totalPartsCost,
+    retailerSupportCost,
+    jlrkSupportCost,
     fileUploadId,
     fileName
   } = req.body;
@@ -54,9 +55,9 @@ module.exports = async (req, res) => {
       }
     };
 
-    if (customerVehicleNo && customerVehicleNo.trim() !== '') {
-      properties['Customer Vehicle No'] = {
-        rich_text: [{ text: { content: customerVehicleNo.trim() } }]
+    if (comment && comment.trim() !== '') {
+      properties['Comment'] = {
+        rich_text: [{ text: { content: comment.trim() } }]
       };
     }
 
@@ -66,17 +67,25 @@ module.exports = async (req, res) => {
       };
     }
 
-    if (totalRepairCost !== undefined && totalRepairCost !== '' && totalRepairCost !== null) {
-      properties['Total Repair Cost'] = { number: Number(totalRepairCost) };
+    if (totalRepairCostBefore !== undefined && totalRepairCostBefore !== '' && totalRepairCostBefore !== null) {
+      properties['Total Repair Cost (Before)'] = { number: Number(totalRepairCostBefore) };
     }
 
-    if (jlrSupportCost !== undefined && jlrSupportCost !== '' && jlrSupportCost !== null) {
-      properties['JLR Support Cost'] = { number: Number(jlrSupportCost) };
+    if (totalPartsCost !== undefined && totalPartsCost !== '' && totalPartsCost !== null) {
+      properties['Total Parts Cost'] = { number: Number(totalPartsCost) };
     }
 
-    if (jlrPortion !== undefined && jlrPortion !== '' && jlrPortion !== null) {
-      properties['JLR Portion'] = { number: Number(jlrPortion) };
+    if (retailerSupportCost !== undefined && retailerSupportCost !== '' && retailerSupportCost !== null) {
+      properties['Retailer Support Cost'] = { number: Number(retailerSupportCost) };
     }
+
+    if (jlrkSupportCost !== undefined && jlrkSupportCost !== '' && jlrkSupportCost !== null) {
+      properties['JLRK Support Cost'] = { number: Number(jlrkSupportCost) };
+    }
+
+    // 참고: Total Repair Cost (After), JLRK Parts DC 는 Notion Formula 속성이라
+    // API로 값을 쓸 수 없음(자동 계산됨) — 의도적으로 properties 에서 제외.
+    // RCSM Request Date 는 Created time(자동) 속성으로 추정되어 마찬가지로 제외.
 
     if (fileUploadId) {
       properties['Files & media'] = {
