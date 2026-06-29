@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Quick Note">
+  <title>Quick Note with Notion</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+
+<header class="header">
+  <div class="logo-box">
+    <img src="logo_v2.png" alt="Wooarabin" class="logo">
+  </div>
+<div class="title-box">
+  <h1 class="title">Quick Capture</h1>
+  <span class="title-sub">for Notion</span>
+</div>
+</header>
+
+    <div class="loading-wrap" id="loadingWrap">
+      <span class="loading-text">불러오는 중...</span>
+    </div>
+
+    <div class="form-wrap" id="formWrap" style="display:none;">
+
+      <div class="field">
+        <label class="label">Category</label>
+        <div class="select-wrap">
+          <select id="categorySelect" class="select">
+            <option value="">선택해주세요</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" id="codingField" style="display:none;">
+        <label class="label">Program — Coding</label>
+        <div class="select-wrap">
+          <select id="codingSelect" class="select">
+            <option value="">선택해주세요</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Due by</label>
+        <div class="select-wrap">
+          <select id="dueBySelect" class="select">
+            <option value="">선택해주세요</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" id="specificDateField" style="display:none;">
+        <label class="label">Specific Date</label>
+        <input type="date" id="specificDateInput" class="date-input">
+      </div>
+
+      <div class="field" id="alarmField" style="display:none;">
+        <label class="label">Alarm 요청</label>
+        <div class="toggle-wrap">
+          <button type="button" class="toggle-btn" data-value="Y">Y</button>
+          <button type="button" class="toggle-btn" data-value="N">N</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Contents</label>
+        <textarea
+          id="noteInput"
+          class="note-input"
+          placeholder="지금 떠오른 생각을 적어보세요..."
+          rows="6"
+        ></textarea>
+      </div>
+
+      <button id="saveBtn" class="save-btn">저장</button>
+      <div id="status" class="status"></div>
+
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
