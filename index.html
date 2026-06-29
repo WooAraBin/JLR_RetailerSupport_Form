@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="수리비 지원">
+  <title>수리비 지원프로그램 — Accident / Heavy Repair</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+
+<header class="header">
+  <div class="logo-box">
+    <img src="logo_v2.png" alt="Wooarabin" class="logo">
+  </div>
+<div class="title-box">
+  <h1 class="title">수리비 지원프로그램</h1>
+  <span class="title-sub">Accident / Heavy Repair Support</span>
+</div>
+</header>
+
+    <div class="loading-wrap" id="loadingWrap">
+      <span class="loading-text">불러오는 중...</span>
+    </div>
+
+    <div class="form-wrap" id="formWrap" style="display:none;">
+
+      <div class="field">
+        <label class="label">Workshop Select</label>
+        <div class="select-wrap">
+          <select id="workshopSelect" class="select">
+            <option value="">선택해주세요</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Repair Type</label>
+        <div class="select-wrap">
+          <select id="repairTypeSelect" class="select">
+            <option value="">선택해주세요</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Vehicle Number</label>
+        <input
+          type="text"
+          id="vehicleNumberInput"
+          class="date-input"
+          placeholder="예: 12가 3456"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="field">
+        <label class="label">Customer Vehicle No<span class="label-sub">선택</span></label>
+        <input
+          type="text"
+          id="customerVehicleNoInput"
+          class="date-input"
+          placeholder="고객 차량 번호 / VIN 등"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="field">
+        <label class="label">Planned Repair Start Date<span class="label-sub">선택</span></label>
+        <input type="date" id="plannedStartDateInput" class="date-input">
+      </div>
+
+      <div class="field">
+        <label class="label">Total Repair Cost<span class="label-sub">선택 · 원</span></label>
+        <input
+          type="number"
+          id="totalRepairCostInput"
+          class="date-input"
+          placeholder="0"
+          inputmode="numeric"
+          min="0"
+        >
+      </div>
+
+      <div class="field">
+        <label class="label">JLR Support Cost<span class="label-sub">선택 · 원</span></label>
+        <input
+          type="number"
+          id="jlrSupportCostInput"
+          class="date-input"
+          placeholder="0"
+          inputmode="numeric"
+          min="0"
+        >
+      </div>
+
+      <div class="field">
+        <label class="label">JLR Portion<span class="label-sub">선택 · 원</span></label>
+        <input
+          type="number"
+          id="jlrPortionInput"
+          class="date-input"
+          placeholder="0"
+          inputmode="numeric"
+          min="0"
+        >
+      </div>
+
+      <div class="field">
+        <label class="label">Files & Media<span class="label-sub">선택</span></label>
+        <div class="file-wrap">
+          <input type="file" id="fileInput" class="file-input-hidden" accept="image/*,.pdf">
+          <button type="button" id="fileBtn" class="file-btn">파일 선택</button>
+          <span id="fileName" class="file-name">선택된 파일 없음</span>
+        </div>
+      </div>
+
+      <button id="saveBtn" class="save-btn">저장</button>
+      <div id="status" class="status"></div>
+
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

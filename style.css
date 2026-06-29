@@ -1,0 +1,384 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg: #F2F4F7;
+  --card: #FFFFFF;
+  --ink: #101729;
+  --ink2: #667085;
+  --ink3: #98A2B3;
+  --line: rgba(16,23,41,0.06);
+
+  --p1: #0B63E5;
+  --p2: #06B6A8;
+  --p-soft: #E8F1FE;
+
+  --up: #12B886;
+  --down: #F03E5C;
+
+  --radius: 20px;
+  --radius-sm: 14px;
+  --shadow: 0 1px 2px rgba(16,23,41,0.04), 0 8px 24px rgba(16,23,41,0.06);
+  --shadow-btn: 0 10px 24px rgba(11,99,229,0.28);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  background-image: radial-gradient(circle at 15% 0%, rgba(11,99,229,0.08), transparent 45%),
+                     radial-gradient(circle at 100% 10%, rgba(6,182,168,0.08), transparent 40%);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px 60px;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+.container {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Header ─────────────────────────────── */
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 22px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #0A2A56 0%, #0B63E5 55%, #06B6A8 100%);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 140px;
+  height: 140px;
+  background: rgba(255,255,255,0.10);
+  border-radius: 50%;
+}
+
+.logo-box {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(10,42,86,0.18);
+}
+
+.logo {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.title-box {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.title {
+  font-family: 'Inter', 'Noto Sans KR', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.title-sub {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.80);
+  letter-spacing: 0.03em;
+}
+
+/* ── Loading ─────────────────────────────── */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 0;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+
+.loading-text {
+  font-size: 13px;
+  color: var(--ink3);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── Form Wrap ───────────────────────────── */
+.form-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Field Card ──────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+  padding: 16px 18px;
+}
+
+.label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.label::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--p1), var(--p2));
+  margin-right: 2px;
+}
+
+.label-sub {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink3);
+  letter-spacing: 0;
+}
+
+/* ── Select ──────────────────────────────── */
+.select-wrap {
+  position: relative;
+}
+
+.select {
+  width: 100%;
+  padding: 12px 40px 12px 14px;
+  font-size: 14px;
+  font-family: 'Inter', 'Noto Sans KR', sans-serif;
+  font-weight: 500;
+  background-color: #F7F8FA;
+  color: var(--ink);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.select:focus {
+  border-color: var(--p1);
+  background-color: #fff;
+}
+
+.select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--ink2);
+  border-bottom: 1.5px solid var(--ink2);
+  transform: translateY(-65%) rotate(45deg);
+  pointer-events: none;
+}
+
+/* ── Text / Date / Number Input ──────────── */
+.date-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: 'Inter', 'Noto Sans KR', sans-serif;
+  font-weight: 500;
+  background-color: #F7F8FA;
+  color: var(--ink);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.date-input::placeholder {
+  color: var(--ink3);
+}
+
+.date-input:focus {
+  border-color: var(--p1);
+  background-color: #fff;
+}
+
+/* ── Toggle (legacy, kept for compatibility) ── */
+.toggle-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  background-color: #F7F8FA;
+  color: var(--ink2);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.02em;
+}
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, var(--p1), #0A2A56);
+  color: #ffffff;
+}
+
+/* ── Textarea ────────────────────────────── */
+.note-input {
+  width: 100%;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 400;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background-color: #F7F8FA;
+  color: var(--ink);
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.note-input::placeholder {
+  color: var(--ink3);
+}
+
+.note-input:focus {
+  border-color: var(--p1);
+  background-color: #fff;
+}
+
+/* ── File Attachment ─────────────────────── */
+.file-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+.file-btn {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  background-color: var(--p-soft);
+  color: var(--p1);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.file-btn:active {
+  opacity: 0.85;
+  transform: scale(0.97);
+}
+
+.file-name {
+  font-size: 13px;
+  color: var(--ink2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Save Button ─────────────────────────── */
+.save-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 14.5px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--p1), #0A2A56);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow-btn);
+}
+
+.save-btn:active {
+  transform: scale(0.98);
+  opacity: 0.95;
+}
+
+.save-btn:disabled {
+  background: var(--ink3);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Status ──────────────────────────────── */
+.status {
+  font-size: 13px;
+  text-align: center;
+  min-height: 20px;
+  color: var(--ink3);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 4px 0;
+}
+
+.status.success {
+  color: var(--up);
+}
+
+.status.error {
+  color: var(--down);
+}
