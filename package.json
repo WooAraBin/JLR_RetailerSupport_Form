@@ -1,8 +1,0 @@
-{
-  "name": "quick-note",
-  "version": "1.0.0",
-  "description": "Quick note app for iPhone with Notion integration",
-  "dependencies": {
-    "@notionhq/client": "^2.2.15"
-  }
-}
