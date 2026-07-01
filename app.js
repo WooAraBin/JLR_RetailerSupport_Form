@@ -143,7 +143,6 @@ saveBtn.addEventListener('click', async () => {
     const data = await response.json();
 
     if (response.ok) {
-      setStatus(`✅ 티켓번호 ${data.ticketNumber}가 생성되었습니다!`, 'success');
       workshopSelect.value = '';
       repairTypeSelect.value = '';
       vehicleNumberInput.value = '';
@@ -156,7 +155,7 @@ saveBtn.addEventListener('click', async () => {
       fileInput.value = '';
       selectedFile = null;
       fileNameEl.textContent = '선택된 파일 없음';
-      setTimeout(() => setStatus(''), 5000);
+      setStatus(`✅ 티켓번호 ${data.ticketNumber}가 생성되었습니다.`, 'success');
     } else {
       setStatus('❌ ' + (data.error || '저장 실패'), 'error');
     }
