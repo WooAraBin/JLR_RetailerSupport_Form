@@ -144,10 +144,40 @@ module.exports = async (req, res) => {
       };
     }
 
-    await notion.pages.create({
+    const page = await notion.pages.create({
       parent: { database_id: process.env.NOTION_DATABASE_ID },
       properties
     });
+
+    // 멘션 알림 댓글 — dogeunk@gmail.com 계정의 Notion User ID 조회 후 멘션
+    try {
+      const MENTION_EMAIL = 'dogeunk@gmail.com';
+      const users = await notion.users.list({});
+      const targetUser = users.results.find(u => u.person?.email === MENTION_EMAIL);
+
+      if (targetUser) {
+        await notion.comments.create({
+          parent: { page_id: page.id },
+          rich_text: [
+            {
+              type: 'text',
+              text: { content: '새 접수 등록: ' }
+            },
+            {
+              type: 'mention',
+              mention: { type: 'user', user: { id: targetUser.id } }
+            },
+            {
+              type: 'text',
+              text: { content: ` 티켓번호 ${ticketNumber} 가 생성되었습니다. 검토 부탁드립니다.` }
+            }
+          ]
+        });
+      }
+    } catch (mentionError) {
+      // 멘션 실패해도 저장 자체는 성공으로 처리
+      console.error('멘션 알림 실패:', mentionError);
+    }
 
     return res.status(200).json({ success: true, ticketNumber });
   } catch (error) {
