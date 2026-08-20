@@ -1,6 +1,13 @@
-const { Client } = require('@notionhq/client');
+// Workshop / Repair Type 선택지. 예전에는 Notion DB 속성에서 읽어왔지만
+// 저장처를 Supabase로 옮기면서 목록을 여기서 관리한다 (노션에 있던 값 그대로).
+const WORKSHOP_OPTIONS = [
+  'AJ HN', 'AJ SS', 'AJ ICND', 'EN', 'JL', 'WB JJ', 'WB GJ',
+  'HY', 'HS BC', 'HS US',
+  'KCC SC', 'KCC SN', 'KCC BD', 'KCC WJ', 'KCC JJ', 'KCC GD', 'KCC IS',
+  'CH SW', 'CH SS', 'CH DC', 'CH CA'
+];
 
-const notion = new Client({ auth: process.env.NOTION_TOKEN });
+const REPAIR_TYPE_OPTIONS = ['Accident Repair', 'Repair Support'];
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,17 +22,11 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const db = await notion.databases.retrieve({
-      database_id: process.env.NOTION_DATABASE_ID
-    });
-
-    const workshopOptions = db.properties['Workshop Select']?.select?.options?.map(o => o.name) ?? [];
-    const repairTypeOptions = db.properties['Repair Type']?.select?.options?.map(o => o.name) ?? [];
-
-    return res.status(200).json({ workshopOptions, repairTypeOptions });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: '옵션 로딩 실패' });
-  }
+  return res.status(200).json({
+    workshopOptions: WORKSHOP_OPTIONS,
+    repairTypeOptions: REPAIR_TYPE_OPTIONS
+  });
 };
+
+module.exports.WORKSHOP_OPTIONS = WORKSHOP_OPTIONS;
+module.exports.REPAIR_TYPE_OPTIONS = REPAIR_TYPE_OPTIONS;

@@ -1,44 +1,9 @@
-const { Client } = require('@notionhq/client');
-const Busboy = require('busboy');
+const path = require('path');
+const { supabase, BUCKET } = require('./_supabase');
 
-const notion = new Client({ auth: process.env.NOTION_TOKEN });
-
-// multipart/form-data 요청에서 파일 1개를 추출
-function parseMultipart(req) {
-  return new Promise((resolve, reject) => {
-    let bb;
-    try {
-      bb = Busboy({ headers: req.headers });
-    } catch (err) {
-      return reject(err);
-    }
-
-    let chunks = [];
-    let filename = '';
-    let mimeType = '';
-    let fileFound = false;
-
-    bb.on('file', (_name, file, info) => {
-      fileFound = true;
-      filename = info.filename;
-      mimeType = info.mimeType;
-
-      file.on('data', (chunk) => chunks.push(chunk));
-      file.on('limit', () => reject(new Error('파일이 너무 큽니다.')));
-    });
-
-    bb.on('finish', () => {
-      if (!fileFound) {
-        return resolve({ buffer: null, filename: null, mimeType: null });
-      }
-      resolve({ buffer: Buffer.concat(chunks), filename, mimeType });
-    });
-
-    bb.on('error', reject);
-
-    req.pipe(bb);
-  });
-}
+// 첨부는 base64 JSON으로 받는다.
+// (multipart는 Vercel Node 런타임이 요청 스트림을 먼저 소비해버려 파싱이 불가능했다)
+const MAX_BYTES = 4 * 1024 * 1024;
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -54,34 +19,36 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { buffer, filename, mimeType } = await parseMultipart(req);
+    const { fileName, mimeType, dataBase64 } = req.body || {};
 
-    if (!buffer || buffer.length === 0) {
+    if (!dataBase64) {
       return res.status(400).json({ error: '파일이 없습니다.' });
     }
 
-    // 1) Notion에 파일 업로드 객체 생성 (단일 파트, 20MB 이하)
-    const created = await notion.fileUploads.create({});
+    const buffer = Buffer.from(dataBase64, 'base64');
 
-    // 2) 실제 파일 바이트 전송
-    await notion.fileUploads.send({
-      file_upload_id: created.id,
-      file: {
-        filename: filename || 'attachment',
-        data: new Blob([buffer], { type: mimeType || 'application/octet-stream' })
-      }
+    if (buffer.length === 0) {
+      return res.status(400).json({ error: '파일이 비어 있습니다.' });
+    }
+
+    if (buffer.length > MAX_BYTES) {
+      return res.status(413).json({ error: '파일이 너무 큽니다. 4MB 이하로 올려주세요.' });
+    }
+
+    // 티켓번호는 저장 시점에 정해지므로 일단 임시 경로에 올리고, save에서 옮긴다
+    const ext = path.extname(fileName || '') || '';
+    const tempPath = `incoming/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+
+    const { error } = await supabase.storage.from(BUCKET).upload(tempPath, buffer, {
+      contentType: mimeType || 'application/octet-stream',
+      upsert: false
     });
 
-    return res.status(200).json({ fileUploadId: created.id, fileName: filename });
+    if (error) throw error;
+
+    return res.status(200).json({ filePath: tempPath, fileName: fileName || 'attachment' });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message || '파일 업로드 실패' });
-  }
-};
-
-// multipart/form-data 요청을 직접 파싱해야 하므로 Vercel의 기본 body parser를 비활성화
-module.exports.config = {
-  api: {
-    bodyParser: false
   }
 };

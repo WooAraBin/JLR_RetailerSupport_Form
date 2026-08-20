@@ -1,6 +1,5 @@
-const { Client } = require('@notionhq/client');
-
-const notion = new Client({ auth: process.env.NOTION_TOKEN });
+const path = require('path');
+const { supabase, TABLE, BUCKET } = require('./_supabase');
 
 // Repair Type → 티켓번호 코드 매핑
 // (※ Repair Type 옵션이 늘어나면 여기에 코드만 추가하면 됨)
@@ -22,25 +21,40 @@ function getKstDateCode() {
   return `${get('year')}${get('month')}${get('day')}`;
 }
 
+// 회계연도(4월 시작) 기준 분기 — 노션 Quarter 속성과 같은 기준
+function getKstQuarter() {
+  const month = Number(
+    new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', month: 'numeric' }).format(new Date())
+  );
+  if (month >= 4 && month <= 6) return '1Q';
+  if (month >= 7 && month <= 9) return '2Q';
+  if (month >= 10 && month <= 12) return '3Q';
+  return '4Q';
+}
+
 // 같은 날짜 + 같은 워크샵 + 같은 수리유형 조합으로 순번을 매겨 티켓번호 생성
 // 예: 260629KCCSCA01
 async function generateTicketNumber(workshop, repairType) {
   const datePart = getKstDateCode();
-  const workshopCode = workshop.replace(/\s+/g, ''); // Workshop Select 값에서 공백만 제거해 그대로 코드로 사용
+  const workshopCode = workshop.replace(/\s+/g, ''); // Workshop 값에서 공백만 제거해 그대로 코드로 사용
   const typeCode = REPAIR_TYPE_CODE[repairType] || 'X';
   const prefix = `${datePart}${workshopCode}${typeCode}`;
 
-  const existing = await notion.databases.query({
-    database_id: process.env.NOTION_DATABASE_ID,
-    filter: {
-      property: 'Ticket number',
-      rich_text: { starts_with: prefix }
-    },
-    page_size: 100
-  });
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('ticket_number')
+    .like('ticket_number', `${prefix}%`);
 
-  const seq = existing.results.length + 1;
+  if (error) throw error;
+
+  const seq = (data ? data.length : 0) + 1;
   return `${prefix}${String(seq).padStart(2, '0')}`;
+}
+
+function toNumber(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 module.exports = async (req, res) => {
@@ -66,7 +80,7 @@ module.exports = async (req, res) => {
     totalPartsCost,
     retailerSupportCost,
     jlrkSupportCost,
-    fileUploadId,
+    filePath,
     fileName
   } = req.body;
 
@@ -85,99 +99,38 @@ module.exports = async (req, res) => {
   try {
     const ticketNumber = await generateTicketNumber(workshop, repairType);
 
-    const properties = {
-      // Vehicle Number = 이 데이터베이스의 Title 속성
-      'Vehicle Number': {
-        title: [{ text: { content: vehicleNumber.trim() } }]
-      },
-      'Workshop Select': {
-        select: { name: workshop }
-      },
-      'Repair Type': {
-        select: { name: repairType }
-      },
-      'Ticket number': {
-        rich_text: [{ text: { content: ticketNumber } }]
-      }
+    // 임시 경로에 올려둔 첨부를 티켓번호 이름으로 옮긴다
+    let storedPath = null;
+    if (filePath) {
+      const ext = path.extname(fileName || filePath) || '';
+      const target = `${ticketNumber}${ext}`;
+      const { error: moveError } = await supabase.storage.from(BUCKET).move(filePath, target);
+      storedPath = moveError ? filePath : target; // 옮기기 실패해도 원래 경로로 연결은 유지
+      if (moveError) console.error('첨부 이동 실패:', moveError);
+    }
+
+    const payload = {
+      ticket_number: ticketNumber,
+      workshop,
+      repair_type: repairType,
+      vehicle_number: vehicleNumber.trim(),
+      comment: comment && comment.trim() !== '' ? comment.trim() : null,
+      planned_start_date: plannedStartDate || null,
+      total_repair_cost_before: toNumber(totalRepairCostBefore),
+      total_parts_cost: toNumber(totalPartsCost),
+      retailer_support_cost: toNumber(retailerSupportCost),
+      jlrk_support_cost: toNumber(jlrkSupportCost),
+      rcsm_approval: 'Not started',
+      quarter: getKstQuarter(),
+      file_name: fileName || null,
+      file_path: storedPath
     };
 
-    if (comment && comment.trim() !== '') {
-      properties['Comment'] = {
-        rich_text: [{ text: { content: comment.trim() } }]
-      };
-    }
+    // Total Repair Cost (After) = Before − Retailer − JLRK,
+    // JLRK Parts Support = JLRK ÷ Total Parts Cost 는 화면에서 계산한다(노션 수식과 동일).
 
-    if (plannedStartDate) {
-      properties['Planned Repair Start Date'] = {
-        date: { start: plannedStartDate }
-      };
-    }
-
-    if (totalRepairCostBefore !== undefined && totalRepairCostBefore !== '' && totalRepairCostBefore !== null) {
-      properties['Total Repair Cost (Before)'] = { number: Number(totalRepairCostBefore) };
-    }
-
-    if (totalPartsCost !== undefined && totalPartsCost !== '' && totalPartsCost !== null) {
-      properties['Total Parts Cost'] = { number: Number(totalPartsCost) };
-    }
-
-    if (retailerSupportCost !== undefined && retailerSupportCost !== '' && retailerSupportCost !== null) {
-      properties['Retailer Support Cost'] = { number: Number(retailerSupportCost) };
-    }
-
-    if (jlrkSupportCost !== undefined && jlrkSupportCost !== '' && jlrkSupportCost !== null) {
-      properties['JLRK Support Cost'] = { number: Number(jlrkSupportCost) };
-    }
-
-    // Total Repair Cost (After), JLRK Parts DC 는 Notion Formula 속성 → 자동 계산, API로 쓰지 않음
-    // RCSM Request Date 는 Created time(자동) 속성으로 추정 → API로 쓰지 않음
-
-    if (fileUploadId) {
-      properties['Files & media'] = {
-        files: [
-          {
-            type: 'file_upload',
-            file_upload: { id: fileUploadId },
-            name: fileName || 'attachment'
-          }
-        ]
-      };
-    }
-
-    const page = await notion.pages.create({
-      parent: { database_id: process.env.NOTION_DATABASE_ID },
-      properties
-    });
-
-    // 멘션 알림 댓글 — dogeunk@gmail.com 계정의 Notion User ID 조회 후 멘션
-    try {
-      const MENTION_EMAIL = 'dogeunk@gmail.com';
-      const users = await notion.users.list({});
-      const targetUser = users.results.find(u => u.person?.email === MENTION_EMAIL);
-
-      if (targetUser) {
-        await notion.comments.create({
-          parent: { page_id: page.id },
-          rich_text: [
-            {
-              type: 'text',
-              text: { content: '새 접수 등록: ' }
-            },
-            {
-              type: 'mention',
-              mention: { type: 'user', user: { id: targetUser.id } }
-            },
-            {
-              type: 'text',
-              text: { content: ` 티켓번호 ${ticketNumber} 가 생성되었습니다. 검토 부탁드립니다.` }
-            }
-          ]
-        });
-      }
-    } catch (mentionError) {
-      // 멘션 실패해도 저장 자체는 성공으로 처리
-      console.error('멘션 알림 실패:', mentionError);
-    }
+    const { error } = await supabase.from(TABLE).insert(payload);
+    if (error) throw error;
 
     return res.status(200).json({ success: true, ticketNumber });
   } catch (error) {

@@ -61,14 +61,31 @@ fileInput.addEventListener('change', () => {
   }
 });
 
-// 파일을 Notion File Upload API로 업로드하고 file_upload id를 반환
+// 파일을 Supabase Storage에 올리고 저장 경로를 반환
+function readAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = () => reject(new Error('파일을 읽지 못했습니다.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadFile(file) {
-  const formData = new FormData();
-  formData.append('file', file, file.name);
+  if (file.size > 4 * 1024 * 1024) {
+    throw new Error('파일이 너무 큽니다. 4MB 이하로 올려주세요.');
+  }
+
+  const dataBase64 = await readAsBase64(file);
 
   const res = await fetch('/api/upload', {
     method: 'POST',
-    body: formData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      dataBase64
+    })
   });
 
   const data = await res.json();
@@ -77,7 +94,7 @@ async function uploadFile(file) {
     throw new Error(data.error || '파일 업로드 실패');
   }
 
-  return data; // { fileUploadId, fileName }
+  return data; // { filePath, fileName }
 }
 
 // 저장
@@ -110,13 +127,13 @@ saveBtn.addEventListener('click', async () => {
   saveBtn.disabled = true;
 
   try {
-    let fileUploadId = null;
+    let filePath = null;
     let fileName = null;
 
     if (selectedFile) {
       setStatus('파일 업로드 중...', '');
       const uploaded = await uploadFile(selectedFile);
-      fileUploadId = uploaded.fileUploadId;
+      filePath = uploaded.filePath;
       fileName = uploaded.fileName;
     }
 
@@ -135,7 +152,7 @@ saveBtn.addEventListener('click', async () => {
         totalPartsCost,
         retailerSupportCost,
         jlrkSupportCost,
-        fileUploadId,
+        filePath,
         fileName
       })
     });
