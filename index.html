@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="수리비 지원">
-  <title>JLRK 수리비 지원프로그램 — Accident / Heavy Repair</title>
+  <meta name="apple-mobile-web-app-title" content="JLRK 리테일러">
+  <title>JLRK 리테일러 프로그램</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,10 +14,40 @@
 
 <header class="header">
 <div class="title-box">
-  <h1 class="title">JLRK 수리비 지원프로그램</h1>
-  <span class="title-sub">Accident / Heavy Repair Support</span>
+  <h1 class="title">JLRK 리테일러 프로그램</h1>
+  <span class="title-sub" id="titleSub">Retailer Programme</span>
 </div>
 </header>
+
+    <!-- 프로그램 선택 -->
+    <div class="menu-wrap" id="menuWrap" style="display:none;">
+      <button class="menu-card" data-go="accident">
+        <span class="menu-icon">🚗</span>
+        <span class="menu-text">
+          <span class="menu-title">사고차 지원금 프로그램</span>
+          <span class="menu-sub">Accident Repair · 차량 1건씩 접수</span>
+        </span>
+        <span class="menu-arrow">›</span>
+      </button>
+      <button class="menu-card" data-go="repair">
+        <span class="menu-icon">🔧</span>
+        <span class="menu-text">
+          <span class="menu-title">수리 지원 프로그램</span>
+          <span class="menu-sub">Repair Support · 차량 1건씩 접수</span>
+        </span>
+        <span class="menu-arrow">›</span>
+      </button>
+      <button class="menu-card" data-go="forecast">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">
+          <span class="menu-title">Parts Wholesale 예상마감치 입력</span>
+          <span class="menu-sub">매월 1회 · 지점 단위 제출</span>
+        </span>
+        <span class="menu-arrow">›</span>
+      </button>
+    </div>
+
+    <button class="back-btn" id="backBtn" style="display:none;">← 프로그램 선택으로</button>
 
     <div class="loading-wrap" id="loadingWrap">
       <span class="loading-text">불러오는 중...</span>
@@ -34,7 +64,7 @@
         </div>
       </div>
 
-      <div class="field">
+      <div class="field" id="repairTypeField" style="display:none;">
         <label class="label">Repair Type</label>
         <div class="select-wrap">
           <select id="repairTypeSelect" class="select">
@@ -131,7 +161,50 @@
       <div id="status" class="status"></div>
 
     </div>
+
+    <!-- Parts Wholesale 예상마감치 -->
+    <div class="form-wrap" id="forecastWrap" style="display:none;">
+      <div class="notice" id="forecastMonth">기준 월 확인 중...</div>
+
+      <div class="field">
+        <label class="label">Workshop Select</label>
+        <div class="select-wrap">
+          <select id="fcWorkshop" class="select">
+            <option value="">선택해주세요</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">이번달 예상 Parts Wholesale<span class="label-sub">원</span></label>
+        <input type="text" id="fcParts" class="date-input" placeholder="0" inputmode="numeric" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label class="label">이번달 예상 Warranty<span class="label-sub">원</span></label>
+        <input type="text" id="fcWarranty" class="date-input" placeholder="0" inputmode="numeric" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label class="label">재고 (Warehouse stock)<span class="label-sub">원</span></label>
+        <input type="text" id="fcStock" class="date-input" placeholder="0" inputmode="numeric" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label class="label">NCE 승인 대기 금액<span class="label-sub">원</span></label>
+        <input type="text" id="fcNce" class="date-input" placeholder="0" inputmode="numeric" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label class="label">DMS 추가로 청구할 금액<span class="label-sub">원</span></label>
+        <input type="text" id="fcDms" class="date-input" placeholder="0" inputmode="numeric" autocomplete="off">
+      </div>
+
+      <button id="fcSaveBtn" class="save-btn">제출</button>
+      <div id="fcStatus" class="status"></div>
+    </div>
   </div>
   <script src="app.js"></script>
+  <script src="forecast.js"></script>
 </body>
 </html>

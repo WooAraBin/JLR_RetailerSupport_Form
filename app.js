@@ -14,6 +14,54 @@ const saveBtn = document.getElementById('saveBtn');
 const status = document.getElementById('status');
 const loadingWrap = document.getElementById('loadingWrap');
 const formWrap = document.getElementById('formWrap');
+const menuWrap = document.getElementById('menuWrap');
+const forecastWrap = document.getElementById('forecastWrap');
+const backBtn = document.getElementById('backBtn');
+const titleSub = document.getElementById('titleSub');
+const repairTypeField = document.getElementById('repairTypeField');
+const fcWorkshopSelect = document.getElementById('fcWorkshop');
+
+// 프로그램 3개를 한 사이트에서 고른다. 지원금 두 개는 같은 폼을 쓰고 Repair Type만 고정된다.
+const PROGRAMS = {
+  accident: { title: '사고차 지원금 프로그램', sub: 'Accident Repair', repairType: 'Accident Repair' },
+  repair: { title: '수리 지원 프로그램', sub: 'Repair Support', repairType: 'Repair Support' },
+  forecast: { title: 'Parts Wholesale 예상마감치 입력', sub: '매월 1회 · 지점 단위 제출' },
+};
+
+function showMenu() {
+  menuWrap.style.display = 'flex';
+  backBtn.style.display = 'none';
+  formWrap.style.display = 'none';
+  forecastWrap.style.display = 'none';
+  titleSub.textContent = 'Retailer Programme';
+  setStatus('');
+}
+
+function openProgram(key) {
+  const prog = PROGRAMS[key];
+  if (!prog) return;
+  menuWrap.style.display = 'none';
+  backBtn.style.display = '';
+  titleSub.textContent = prog.title + ' · ' + prog.sub;
+
+  if (key === 'forecast') {
+    formWrap.style.display = 'none';
+    forecastWrap.style.display = '';
+    return;
+  }
+
+  forecastWrap.style.display = 'none';
+  formWrap.style.display = '';
+  // 프로그램에서 유형이 이미 정해지므로 선택칸은 감추고 값만 박아둔다
+  repairTypeSelect.value = prog.repairType;
+  repairTypeField.style.display = 'none';
+  setStatus('');
+}
+
+document.querySelectorAll('.menu-card').forEach((card) => {
+  card.addEventListener('click', () => openProgram(card.dataset.go));
+});
+backBtn.addEventListener('click', showMenu);
 
 let selectedFile = null;
 
@@ -38,10 +86,11 @@ async function loadOptions() {
     const data = await res.json();
 
     fillSelect(workshopSelect, data.workshopOptions);
+    if (fcWorkshopSelect) fillSelect(fcWorkshopSelect, data.workshopOptions);
     fillSelect(repairTypeSelect, data.repairTypeOptions);
 
     loadingWrap.style.display = 'none';
-    formWrap.style.display = 'flex';
+    showMenu();   // 옵션이 준비되면 프로그램 선택 화면부터 보여준다
   } catch (err) {
     loadingWrap.querySelector('.loading-text').textContent = '옵션 로딩 실패. 새로고침 해주세요.';
   }
