@@ -597,3 +597,6 @@ body {
 .check-ok { background: #E9F7F1; border: 1px solid #BFE7D6; color: #0E6B52; }
 .check-warn { background: #FFF4E5; border: 1px solid #F6DDB4; color: #8A4B00; }
 .check-none { background: #f7f8fa; border: 1px solid #e2e5ea; color: #6b7383; }
+
+/* 사고차 지원금은 개편 대상이 아니다 — 2열 틀을 풀어 예전처럼 한 줄로 */
+.form-wrap.one-col .grid2 { grid-template-columns: 1fr; }

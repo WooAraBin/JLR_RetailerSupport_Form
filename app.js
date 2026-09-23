@@ -82,6 +82,9 @@ function openProgram(key) {
   document.getElementById('stepsNote').style.display = isRepair ? '' : 'none';
   document.getElementById('fileGuide').style.display = isRepair ? '' : 'none';
   document.getElementById('authorNameInput').closest('.field').style.display = isRepair ? '' : 'none';
+  // 사고차 지원금은 이번 개편 대상이 아니다 — 개편 전 모습(1열·옛 라벨) 그대로 둔다
+  formWrap.classList.toggle('one-col', !isRepair);
+  document.getElementById('fileLabel').firstChild.nodeValue = isRepair ? '첨부' : 'Files & Media';
   document.getElementById('fileSub').textContent = isRepair ? '1차 견적서 · 필수' : '선택';
   // 프로그램에서 유형이 이미 정해지므로 선택칸은 감추고 값만 박아둔다
   repairTypeSelect.value = prog.repairType;
