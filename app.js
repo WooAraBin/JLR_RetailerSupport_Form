@@ -20,20 +20,31 @@ const backBtn = document.getElementById('backBtn');
 const titleSub = document.getElementById('titleSub');
 const repairTypeField = document.getElementById('repairTypeField');
 const fcWorkshopSelect = document.getElementById('fcWorkshop');
+const authorNameInput = document.getElementById('authorNameInput');
+const lookupWrap = document.getElementById('lookupWrap');
+const containerEl = document.querySelector('.container');
 
 // 프로그램 3개를 한 사이트에서 고른다. 지원금 두 개는 같은 폼을 쓰고 Repair Type만 고정된다.
 const PROGRAMS = {
   accident: { title: '사고차 지원금 프로그램', sub: 'Accident Repair', repairType: 'Accident Repair' },
   repair: { title: '수리 지원 프로그램', sub: 'Repair Support', repairType: 'Repair Support' },
   forecast: { title: 'Parts Wholesale 예상마감치 입력', sub: '매월 1회 · 지점 단위 제출' },
+  lookup: { title: '내 티켓 조회', sub: '자료 첨부 · 수치 수정' },
 };
+
+// 수리 지원 프로그램만 2026-09-23 개편 대상 — 작성자명·견적서 필수, 티켓 조회
+const REPAIR_KEY = 'repair';
+let currentProgram = null;
 
 function showMenu() {
   menuWrap.style.display = 'flex';
   backBtn.style.display = 'none';
   formWrap.style.display = 'none';
   forecastWrap.style.display = 'none';
+  if (lookupWrap) lookupWrap.style.display = 'none';
+  containerEl.classList.remove('wide');
   titleSub.textContent = 'Retailer Programme';
+  currentProgram = null;
   setStatus('');
 }
 
@@ -44,22 +55,45 @@ function openProgram(key) {
   backBtn.style.display = '';
   titleSub.textContent = prog.title + ' · ' + prog.sub;
 
+  currentProgram = key;
+
   if (key === 'forecast') {
     formWrap.style.display = 'none';
     forecastWrap.style.display = '';
+    if (lookupWrap) lookupWrap.style.display = 'none';
+    return;
+  }
+
+  if (key === 'lookup') {
+    formWrap.style.display = 'none';
+    forecastWrap.style.display = 'none';
+    lookupWrap.style.display = '';
+    containerEl.classList.add('wide');
     return;
   }
 
   forecastWrap.style.display = 'none';
+  if (lookupWrap) lookupWrap.style.display = 'none';
   formWrap.style.display = '';
+  // 수리 지원만 넓은 2열 화면 + 작성자명·견적서 필수
+  const isRepair = key === REPAIR_KEY;
+  containerEl.classList.toggle('wide', isRepair);
+  document.getElementById('stepsGuide').style.display = isRepair ? '' : 'none';
+  document.getElementById('stepsNote').style.display = isRepair ? '' : 'none';
+  document.getElementById('fileGuide').style.display = isRepair ? '' : 'none';
+  document.getElementById('authorNameInput').closest('.field').style.display = isRepair ? '' : 'none';
+  document.getElementById('fileSub').textContent = isRepair ? '1차 견적서 · 필수' : '선택';
   // 프로그램에서 유형이 이미 정해지므로 선택칸은 감추고 값만 박아둔다
   repairTypeSelect.value = prog.repairType;
   repairTypeField.style.display = 'none';
   setStatus('');
 }
 
-document.querySelectorAll('.menu-card').forEach((card) => {
+document.querySelectorAll('.menu-card[data-go]').forEach((card) => {
   card.addEventListener('click', () => openProgram(card.dataset.go));
+});
+document.querySelectorAll('.menu-btn[data-go]').forEach((btn) => {
+  btn.addEventListener('click', () => openProgram(btn.dataset.go));
 });
 backBtn.addEventListener('click', showMenu);
 
@@ -151,6 +185,7 @@ saveBtn.addEventListener('click', async () => {
   const workshop = workshopSelect.value;
   const repairType = repairTypeSelect.value;
   const vehicleNumber = vehicleNumberInput.value.trim();
+  const authorName = authorNameInput.value.trim();
   const comment = commentInput.value.trim();
   const plannedStartDate = plannedStartDateInput.value;
   const totalRepairCostBefore = totalRepairCostBeforeInput.value;
@@ -171,6 +206,18 @@ saveBtn.addEventListener('click', async () => {
   if (!vehicleNumber) {
     setStatus('Vehicle Number를 입력해주세요.', 'error');
     return;
+  }
+
+  // 수리 지원은 작성자명과 1차 견적서가 있어야 접수된다(조회·대조에 쓰인다)
+  if (currentProgram === REPAIR_KEY) {
+    if (!authorName) {
+      setStatus('작성자명을 입력해주세요. 나중에 티켓을 찾을 때 씁니다.', 'error');
+      return;
+    }
+    if (!selectedFile) {
+      setStatus('1차 견적서를 첨부해주세요.', 'error');
+      return;
+    }
   }
 
   saveBtn.disabled = true;
@@ -195,6 +242,7 @@ saveBtn.addEventListener('click', async () => {
         workshop,
         repairType,
         vehicleNumber,
+        authorName,
         comment,
         plannedStartDate,
         totalRepairCostBefore,
@@ -212,6 +260,7 @@ saveBtn.addEventListener('click', async () => {
       workshopSelect.value = '';
       repairTypeSelect.value = '';
       vehicleNumberInput.value = '';
+      authorNameInput.value = '';
       commentInput.value = '';
       plannedStartDateInput.value = '';
       totalRepairCostBeforeInput.value = '';
@@ -221,7 +270,10 @@ saveBtn.addEventListener('click', async () => {
       fileInput.value = '';
       selectedFile = null;
       fileNameEl.textContent = '선택된 파일 없음';
-      setStatus(`✅ 티켓번호 ${data.ticketNumber}가 생성되었습니다.`, 'success');
+      setStatus(
+        `✅ 티켓번호 ${data.ticketNumber} 가 생성되었습니다. 이 번호와 작성자명으로 「내 티켓 조회」에서 다시 여실 수 있습니다.`,
+        'success'
+      );
     } else {
       setStatus('❌ ' + (data.error || '저장 실패'), 'error');
     }

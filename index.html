@@ -29,14 +29,17 @@
         </span>
         <span class="menu-arrow">›</span>
       </button>
-      <button class="menu-card" data-go="repair">
+      <div class="menu-card menu-card-split">
         <span class="menu-icon">🔧</span>
         <span class="menu-text">
           <span class="menu-title">수리 지원 프로그램</span>
           <span class="menu-sub">Repair Support · 차량 1건씩 접수</span>
         </span>
-        <span class="menu-arrow">›</span>
-      </button>
+        <span class="menu-actions">
+          <button class="menu-btn primary" data-go="repair">접수하기</button>
+          <button class="menu-btn" data-go="lookup">내 티켓 조회</button>
+        </span>
+      </div>
       <button class="menu-card" data-go="forecast">
         <span class="menu-icon">📊</span>
         <span class="menu-text">
@@ -55,6 +58,20 @@
 
     <div class="form-wrap" id="formWrap" style="display:none;">
 
+      <div class="steps" id="stepsGuide">
+        <div class="step"><b>① 접수 완료</b><span>1차 견적서 첨부</span></div>
+        <div class="step-arrow">›</div>
+        <div class="step"><b>② 인보이스 마감</b><span>최종 마감 인보이스 첨부</span></div>
+        <div class="step-arrow">›</div>
+        <div class="step"><b>③ 검토 완료</b><span>JLRK 검토</span></div>
+        <div class="step-arrow">›</div>
+        <div class="step"><b>④ 지급 완료</b><span>비용 지급</span></div>
+      </div>
+      <p class="steps-note" id="stepsNote">
+        최종 마감 인보이스를 붙여야 검토·지급이 진행됩니다. 접수 후에는 <b>내 티켓 조회</b>에서 자료를 붙이거나 수치를 고칠 수 있고, <b>지급 완료된 건은 수정할 수 없습니다.</b>
+      </p>
+
+      <div class="grid2">
       <div class="field">
         <label class="label">Workshop Select</label>
         <div class="select-wrap">
@@ -74,6 +91,17 @@
       </div>
 
       <div class="field">
+        <label class="label">작성자명<span class="label-sub" id="authorSub">필수 · 티켓 조회 때 씁니다</span></label>
+        <input
+          type="text"
+          id="authorNameInput"
+          class="date-input"
+          placeholder="예: 김민수"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="field">
         <label class="label">Vehicle Number</label>
         <input
           type="text"
@@ -85,20 +113,23 @@
       </div>
 
       <div class="field">
+        <label class="label">Planned Repair Start Date<span class="label-sub">선택</span></label>
+        <input type="date" id="plannedStartDateInput" class="date-input">
+      </div>
+      </div>
+
+      <div class="field">
         <label class="label">Comment<span class="label-sub">선택</span></label>
         <input
           type="text"
           id="commentInput"
           class="date-input"
-          placeholder="메모 / 차량 정보 등"
+          placeholder="예: 우측 프론트 범퍼·펜더 교환, 고객 자비 부담 조정 요청"
           autocomplete="off"
         >
       </div>
 
-      <div class="field">
-        <label class="label">Planned Repair Start Date<span class="label-sub">선택</span></label>
-        <input type="date" id="plannedStartDateInput" class="date-input">
-      </div>
+      <div class="grid2">
 
       <div class="field">
         <label class="label">Total Repair Cost (Before)<span class="label-sub">선택 · 원</span></label>
@@ -147,9 +178,14 @@
           min="0"
         >
       </div>
+      </div>
 
       <div class="field">
-        <label class="label">Files & Media<span class="label-sub">선택</span></label>
+        <label class="label">첨부<span class="label-sub" id="fileSub">1차 견적서 · 필수</span></label>
+        <ul class="filelist" id="fileGuide">
+          <li><b>지금 첨부</b> — 1차 견적서 (PDF·엑셀). 위에 적은 금액이 견적서 수치와 같아야 합니다</li>
+          <li><b>나중에 첨부</b> — 최종 마감 인보이스. 인보이스가 나오면 <b>내 티켓 조회</b>에서 붙여주세요</li>
+        </ul>
         <div class="file-wrap">
           <input type="file" id="fileInput" class="file-input-hidden" accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx">
           <button type="button" id="fileBtn" class="file-btn">파일 선택</button>
@@ -160,6 +196,29 @@
       <button id="saveBtn" class="save-btn">저장</button>
       <div id="status" class="status"></div>
 
+    </div>
+
+    <!-- 내 티켓 조회 -->
+    <div class="form-wrap" id="lookupWrap" style="display:none;">
+      <p class="steps-note">
+        접수하실 때 적은 <b>티켓번호와 작성자명</b>으로 본인 티켓만 열립니다. 티켓번호는 접수 직후 화면에 나온 <b>260922ENB01</b> 같은 번호입니다.
+      </p>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">티켓번호</label>
+          <input type="text" id="lkTicket" class="date-input" placeholder="예: 260922ENB01" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="label">작성자명</label>
+          <input type="text" id="lkAuthor" class="date-input" placeholder="예: 김민수" autocomplete="off">
+        </div>
+      </div>
+
+      <button id="lkSearchBtn" class="save-btn">조회</button>
+      <div id="lkStatus" class="status"></div>
+
+      <div id="lkResult" style="display:none;"></div>
     </div>
 
     <!-- Parts Wholesale 예상마감치 -->
@@ -205,6 +264,7 @@
     </div>
   </div>
   <script src="app.js"></script>
+  <script src="lookup.js"></script>
   <script src="forecast.js"></script>
 </body>
 </html>

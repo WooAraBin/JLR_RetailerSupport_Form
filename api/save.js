@@ -1,5 +1,6 @@
 const path = require('path');
 const { supabase, TABLE, BUCKET } = require('./_supabase');
+const { checkEstimate } = require('./_estimate');
 
 // Repair Type → 티켓번호 코드 매핑
 // (※ Repair Type 옵션이 늘어나면 여기에 코드만 추가하면 됨)
@@ -74,6 +75,7 @@ module.exports = async (req, res) => {
     workshop,
     repairType,
     vehicleNumber,
+    authorName,
     comment,
     plannedStartDate,
     totalRepairCostBefore,
@@ -96,6 +98,16 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Vehicle Number를 입력해주세요.' });
   }
 
+  // 수리 지원은 작성자명과 1차 견적서가 있어야 접수된다
+  // (작성자명은 나중에 본인 티켓을 여는 열쇠로도 쓰인다)
+  const isRepairSupport = repairType === 'Repair Support';
+  if (isRepairSupport && (!authorName || authorName.trim() === '')) {
+    return res.status(400).json({ error: '작성자명을 입력해주세요.' });
+  }
+  if (isRepairSupport && !filePath) {
+    return res.status(400).json({ error: '1차 견적서를 첨부해주세요.' });
+  }
+
   try {
     const ticketNumber = await generateTicketNumber(workshop, repairType);
 
@@ -114,6 +126,7 @@ module.exports = async (req, res) => {
       workshop,
       repair_type: repairType,
       vehicle_number: vehicleNumber.trim(),
+      author_name: authorName && authorName.trim() !== '' ? authorName.trim() : null,
       comment: comment && comment.trim() !== '' ? comment.trim() : null,
       planned_start_date: plannedStartDate || null,
       total_repair_cost_before: toNumber(totalRepairCostBefore),
@@ -129,10 +142,30 @@ module.exports = async (req, res) => {
     // Total Repair Cost (After) = Before − Retailer − JLRK,
     // JLRK Parts Support = JLRK ÷ Total Parts Cost 는 화면에서 계산한다(노션 수식과 동일).
 
+    // 1차 견적서 수치 자동 대조 — 승인 전 1차 확인용. 실패해도 접수는 막지 않는다.
+    let estimateCheck = null;
+    if (storedPath) {
+      try {
+        const { data: file } = await supabase.storage.from(BUCKET).download(storedPath);
+        if (file) {
+          const buffer = Buffer.from(await file.arrayBuffer());
+          estimateCheck = await checkEstimate(buffer, fileName || storedPath, {
+            total_repair_cost_before: payload.total_repair_cost_before,
+            total_parts_cost: payload.total_parts_cost,
+            retailer_support_cost: payload.retailer_support_cost,
+            jlrk_support_cost: payload.jlrk_support_cost,
+          });
+          payload.estimate_check = estimateCheck;
+        }
+      } catch (err) {
+        console.error('견적서 대조 실패:', err);
+      }
+    }
+
     const { error } = await supabase.from(TABLE).insert(payload);
     if (error) throw error;
 
-    return res.status(200).json({ success: true, ticketNumber });
+    return res.status(200).json({ success: true, ticketNumber, estimateCheck });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message || '저장 실패. 다시 시도해주세요.' });
