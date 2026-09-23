@@ -82,9 +82,18 @@ function openProgram(key) {
   document.getElementById('stepsNote').style.display = isRepair ? '' : 'none';
   document.getElementById('fileGuide').style.display = isRepair ? '' : 'none';
   document.getElementById('authorNameInput').closest('.field').style.display = isRepair ? '' : 'none';
-  // 사고차 지원금은 이번 개편 대상이 아니다 — 개편 전 모습(1열·옛 라벨) 그대로 둔다
+  // 사고차 지원금은 이번 개편 대상이 아니다 — 개편 전 모습(1열·옛 라벨·옛 칸 순서) 그대로 둔다
   formWrap.classList.toggle('one-col', !isRepair);
   document.getElementById('fileLabel').firstChild.nodeValue = isRepair ? '첨부' : 'Files & Media';
+  commentInput.placeholder = isRepair ? '예: 우측 프론트 범퍼·펜더 교환, 고객 자비 부담 조정 요청' : '메모 / 차량 정보 등';
+  // 개편 전 순서는 차량번호 → Comment → 수리 예정일이었다
+  const commentField = commentInput.closest('.field');
+  const dateField = plannedStartDateInput.closest('.field');
+  if (isRepair) {
+    commentField.parentNode !== formWrap && formWrap.insertBefore(commentField, dateField.parentNode.nextSibling);
+  } else {
+    dateField.parentNode.insertBefore(commentField, dateField);
+  }
   document.getElementById('fileSub').textContent = isRepair ? '1차 견적서 · 필수' : '선택';
   // 프로그램에서 유형이 이미 정해지므로 선택칸은 감추고 값만 박아둔다
   repairTypeSelect.value = prog.repairType;
