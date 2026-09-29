@@ -64,7 +64,7 @@ async function readInvoicePdf(buffer) {
 async function checkInvoice(buffer, fileName, amounts) {
   const stamp = new Date().toISOString();
   if (!/\.pdf$/i.test(fileName || '')) {
-    return { status: 'unreadable', reason: 'PDF가 아닙니다 — DMS에서 PDF로 뽑아 올려주세요', checkedAt: stamp };
+    return { status: 'unreadable', reason: 'PDF가 아닙니다 — 견적서 및 인보이스는 One DMS 출력본만 사용 가능합니다', checkedAt: stamp };
   }
 
   let read = null;
@@ -74,7 +74,7 @@ async function checkInvoice(buffer, fileName, amounts) {
     return { status: 'unreadable', reason: '인보이스를 읽지 못했습니다 (' + (err.message || '') + ')', checkedAt: stamp };
   }
   if (!read) {
-    return { status: 'unreadable', reason: '합계 줄을 찾지 못했습니다 — DMS에서 뽑은 청구서 원본인지 확인해주세요', checkedAt: stamp };
+    return { status: 'unreadable', reason: 'One DMS 출력본이 아닙니다 — 견적서 및 인보이스는 One DMS 출력본만 사용 가능합니다', checkedAt: stamp };
   }
 
   const quote = Number(amounts.total_repair_cost_before || 0);   // 견적서 금액(청구금액, 부가세 제외)

@@ -20,8 +20,8 @@ const STATUS_STEPS = [
 // 첨부 3칸 — 접수 때 ①②, 인보이스는 나중에. 파일 삭제는 JLRK(관리자)만 한다.
 const SLOTS = [
   { key: 'approval', label: '① 이메일 승인본 캡처', nameField: 'approval_file_name' },
-  { key: 'estimate', label: '② 견적서', nameField: 'file_name' },
-  { key: 'invoice', label: '③ 최종 마감 인보이스', nameField: 'invoice_file_name', hint: '할인 적용본 · DMS에서 PDF로 뽑아 올려주세요' },
+  { key: 'estimate', label: '② 견적서', nameField: 'file_name', hint: '할인 미적용 · One DMS 출력본만 가능' },
+  { key: 'invoice', label: '③ 최종 마감 인보이스', nameField: 'invoice_file_name', hint: '할인 적용본 · One DMS 출력본만 가능' },
 ];
 
 function statusOf(key) {
@@ -57,7 +57,11 @@ function checkBox(t) {
   }
 
   if (check.status === 'unreadable') {
-    return `<div class="check-none"><b>견적서 자동 확인 불가</b><br>· ${check.reason || ''}<br>DMS에서 뽑은 견적서를 올려주시면 자동으로 확인됩니다.</div>`;
+    return `<div class="locked-note"><b>견적서 자동 확인 불가</b><br>
+      · 올리신 파일: ${t.file_name || '-'}<br>
+      · <b>필수 사항 — 견적서 및 인보이스는 One DMS 출력본만 사용 가능합니다.</b><br>
+      · 할인 미적용 상태여야 하고, 금액은 부가세 제외 기준입니다.<br>
+      「② 견적서」 칸에서 One DMS 출력본으로 다시 첨부해주세요.</div>`;
   }
 
   const lines = (check.lines || []).map((l) => {
@@ -95,7 +99,11 @@ function invoiceBox(t) {
       ${(c.issues || []).map((i) => '· ' + i).join('<br>')}<br>
       고쳐서 다시 올려주시거나, 내용이 달라졌다면 <b>이 건을 취소하고 새로 접수</b>해주세요.</div>`;
   }
-  return `<div class="check-none"><b>인보이스 자동 확인 불가</b><br>· ${c.reason || ''}<br>DMS에서 PDF로 뽑은 청구서를 올려주시면 자동으로 확인됩니다.</div>`;
+  return `<div class="locked-note"><b>인보이스 자동 확인 불가</b><br>
+    · 올리신 파일: ${t.invoice_file_name || '-'}<br>
+    · <b>필수 사항 — 견적서 및 인보이스는 One DMS 출력본만 사용 가능합니다.</b><br>
+    · 인보이스는 할인이 적용된 상태로 올려주세요.<br>
+    「③ 최종 마감 인보이스」 칸에서 One DMS 출력본으로 다시 첨부해주세요.</div>`;
 }
 
 // 빠진 첨부를 그대로 알려준다 — 무엇을 더 올려야 하는지가 이 화면의 핵심이다
@@ -152,7 +160,7 @@ function renderTicket(t) {
         <div class="slot-row">
           <div class="slot-name">
             <b>${slot.label}</b>${slot.hint ? `<span class="slot-hint">${slot.hint}</span>` : ''}
-            <span class="${t[slot.nameField] ? 'slot-have' : 'slot-none'}">${t[slot.nameField] || '아직 없습니다'}</span>
+            <span class="${t[slot.nameField] ? 'slot-have' : 'slot-none'}">${t[slot.nameField] || '첨부 필요'}</span>
           </div>
           ${locked ? '' : `
           <div class="file-wrap">

@@ -80,7 +80,7 @@ async function checkEstimate(buffer, fileName, amounts) {
   }
 
   if (e !== '.pdf') {
-    return { status: 'unreadable', reason: 'PDF나 엑셀로 올려주세요', checkedAt: stamp };
+    return { status: 'unreadable', reason: '견적서 및 인보이스는 One DMS 출력본(PDF)만 사용 가능합니다', checkedAt: stamp };
   }
 
   let read = null;
@@ -92,7 +92,7 @@ async function checkEstimate(buffer, fileName, amounts) {
   if (!read) {
     return {
       status: 'unreadable',
-      reason: '합계 줄을 찾지 못했습니다 — DMS에서 뽑은 견적서 원본인지 확인해주세요',
+      reason: 'One DMS 출력본이 아닙니다 — 견적서 및 인보이스는 One DMS 출력본만 사용 가능합니다',
       checkedAt: stamp,
     };
   }
