@@ -30,12 +30,12 @@ const containerEl = document.querySelector('.container');
 // 프로그램 3개를 한 사이트에서 고른다. 지원금 두 개는 같은 폼을 쓰고 Repair Type만 고정된다.
 const PROGRAMS = {
   accident: { title: '사고차 지원금 프로그램', sub: 'Accident Repair', repairType: 'Accident Repair' },
-  repair: { title: '수리 지원 프로그램', sub: 'Repair Support', repairType: 'Repair Support' },
+  repair: { title: '수리비 지원 프로그램', sub: 'Repair Support', repairType: 'Repair Support' },
   forecast: { title: 'Parts Wholesale 예상마감치 입력', sub: '매월 1회 · 지점 단위 제출' },
   lookup: { title: '내 티켓 조회', sub: '자료 첨부 · 수치 수정' },
 };
 
-// 수리 지원 프로그램만 2026-09-23 개편 대상 — 작성자명·견적서 필수, 티켓 조회
+// 수리비 지원 프로그램만 2026-09-23 개편 대상 — 작성자명·견적서 필수, 티켓 조회
 const REPAIR_KEY = 'repair';
 let currentProgram = null;
 
