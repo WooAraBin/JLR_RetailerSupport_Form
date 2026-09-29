@@ -121,12 +121,12 @@
       </div>
 
       <div class="field">
-        <label class="label">Comment<span class="label-sub">선택</span></label>
+        <label class="label">Comment<span class="label-sub" id="commentSub">특이사항이 있을 때만</span></label>
         <input
           type="text"
           id="commentInput"
           class="date-input"
-          placeholder="예: 우측 프론트 범퍼·펜더 교환, 고객 자비 부담 조정 요청"
+          placeholder="예: 고객 요청으로 10월 초 작업 예정"
           autocomplete="off"
         >
       </div>
@@ -134,53 +134,31 @@
       <div class="grid2">
 
       <div class="field">
-        <label class="label">Total Repair Cost (Before)<span class="label-sub">선택 · 원</span></label>
-        <input
-          type="number"
-          id="totalRepairCostBeforeInput"
-          class="date-input"
-          placeholder="0"
-          inputmode="numeric"
-          min="0"
-        >
+        <label class="label" id="beforeLabel">견적서 금액<span class="label-sub" id="beforeSub">견적서의 청구금액 · 부가세 제외</span></label>
+        <input type="text" id="totalRepairCostBeforeInput" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
       </div>
 
       <div class="field">
-        <label class="label">Total Parts Cost<span class="label-sub">선택 · 원</span></label>
-        <input
-          type="number"
-          id="totalPartsCostInput"
-          class="date-input"
-          placeholder="0"
-          inputmode="numeric"
-          min="0"
-        >
+        <label class="label" id="partsLabel">부품 금액<span class="label-sub" id="partsSub">견적서의 부품 금액 · 부가세 제외</span></label>
+        <input type="text" id="totalPartsCostInput" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
       </div>
 
       <div class="field">
-        <label class="label">Retailer Support Cost<span class="label-sub">선택 · 원</span></label>
-        <input
-          type="number"
-          id="retailerSupportCostInput"
-          class="date-input"
-          placeholder="0"
-          inputmode="numeric"
-          min="0"
-        >
+        <label class="label">리테일러 지원금<span class="label-sub">Retailer Support · 부가세 제외</span></label>
+        <input type="text" id="retailerSupportCostInput" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
       </div>
 
       <div class="field">
-        <label class="label">JLRK Support Cost<span class="label-sub">선택 · 원</span></label>
-        <input
-          type="number"
-          id="jlrkSupportCostInput"
-          class="date-input"
-          placeholder="0"
-          inputmode="numeric"
-          min="0"
-        >
+        <label class="label">JLRK 지원금<span class="label-sub">JLRK Support · 리테일러 지원금보다 클 수 없습니다</span></label>
+        <input type="text" id="jlrkSupportCostInput" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
       </div>
       </div>
+
+      <p class="steps-note" id="moneyNote">
+        · 모든 금액은 <b>부가세 제외(공급가)</b> 기준으로 적어주세요. 지원금에는 부가세가 포함되지 않습니다.<br>
+        · <b>견적서 금액</b>은 견적서의 청구금액과, <b>부품 금액</b>은 견적서의 부품 금액과 같아야 합니다.<br>
+        · <b>JLRK 지원금은 리테일러 지원금보다 클 수 없습니다.</b>
+      </p>
 
       <div class="field" id="approvalField">
         <label class="label">① 이메일 승인본 캡처<span class="label-sub">필수</span></label>
@@ -194,8 +172,9 @@
       <div class="field">
         <label class="label" id="fileLabel">② 1차 견적서<span class="label-sub" id="fileSub">필수</span></label>
         <ul class="filelist" id="fileGuide">
-          <li>PDF·엑셀로 올려주세요. 위에 적은 금액이 견적서 수치와 같아야 합니다</li>
+          <li><b>할인 미적용</b> 상태의 견적서를 올려주세요. 위에 적은 금액이 견적서 수치와 같아야 합니다</li>
           <li><b>③ 최종 마감 인보이스는 나중에</b> — 인보이스가 나오면 <b>내 티켓 조회</b>에서 붙여주세요</li>
+          <li>인보이스는 <b>할인이 적용된 상태</b>로, <b>DMS에서 PDF로 뽑아</b> 올려주셔야 자동 확인이 됩니다</li>
         </ul>
         <div class="file-wrap">
           <input type="file" id="fileInput" class="file-input-hidden" accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx">
@@ -212,8 +191,9 @@
     <!-- 내 티켓 조회 -->
     <div class="form-wrap" id="lookupWrap" style="display:none;">
       <p class="steps-note">
-        접수하실 때 적은 <b>티켓번호와 작성자명</b>으로 본인 티켓만 열립니다. 티켓번호는 접수 직후 화면에 나온 <b>260922ENB01</b> 같은 번호입니다.<br>
-        <b>2026-09-23 이전에 접수하신 건</b>은 작성자명을 받기 전이라, 작성자명 칸에 <b>차량번호</b>를 넣어주세요.
+        · 접수하실 때 적은 <b>티켓번호와 작성자명</b>으로 본인 티켓만 열립니다.<br>
+        · 티켓번호는 접수 직후 화면에 나온 <b>260922ENB01</b> 같은 번호입니다.<br>
+        · <b>2026-09-23 이전에 접수하신 건</b>은 작성자명 칸에 <b>차량번호</b>를 넣어주세요.
       </p>
 
       <div class="grid2">

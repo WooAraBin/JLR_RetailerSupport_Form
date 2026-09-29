@@ -635,3 +635,32 @@ body {
 .support-value { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
 .support-side { font-size: 12px; color: var(--ink2); text-align: right; }
 .support-warn { color: var(--down); font-weight: 800; margin-top: 3px; }
+
+/* ===== 2026-09-29 — 칸 간격 통일 · 취소 버튼 ===== */
+/* 칸(.field)이 화면마다 다른 간격으로 붙어 보여서 한 값으로 맞춘다 */
+.form-wrap { gap: 12px; }
+.grid2 { gap: 12px; align-items: start; }
+.field { padding: 16px 18px; gap: 9px; }
+.field .date-input, .field .select { margin-top: 1px; }
+.steps-note { line-height: 1.75; padding: 2px 4px 4px; }
+.filelist { gap: 6px; line-height: 1.6; }
+
+.slot-hint { font-size: 11px; color: var(--ink3); margin-left: 6px; font-weight: 500; }
+
+.cancel-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #F7C9D2;
+  background: #FFF7F8;
+  color: #A32B43;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cancel-btn:hover { background: #FDECEF; }
+
+/* 보완 필요·확인 결과 박스 안에서도 줄이 붙지 않게 */
+.check-ok, .check-warn, .check-none, .locked-note { line-height: 1.75; }

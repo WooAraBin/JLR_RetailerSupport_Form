@@ -114,6 +114,27 @@ document.querySelectorAll('.menu-btn[data-go]').forEach((btn) => {
 });
 backBtn.addEventListener('click', showMenu);
 
+// 금액 칸은 치는 동안 천 단위 콤마를 붙여준다. 서버로 보낼 땐 숫자만 남긴다.
+function onlyDigits(v) {
+  return String(v == null ? '' : v).replace(/[^\d]/g, '');
+}
+function withCommas(v) {
+  const d = onlyDigits(v);
+  return d ? Number(d).toLocaleString() : '';
+}
+function bindMoneyInput(el) {
+  if (!el || el.dataset.moneyBound) return;
+  el.dataset.moneyBound = '1';
+  el.addEventListener('input', () => {
+    const before = el.value;
+    const caretFromEnd = before.length - (el.selectionStart ?? before.length);
+    el.value = withCommas(before);
+    const pos = Math.max(0, el.value.length - caretFromEnd);
+    el.setSelectionRange(pos, pos);
+  });
+}
+document.querySelectorAll('.money').forEach(bindMoneyInput);
+
 let selectedFile = null;      // ② 1차 견적서
 let selectedApproval = null;  // ① 이메일 승인본 캡처
 
@@ -212,10 +233,10 @@ saveBtn.addEventListener('click', async () => {
   const authorName = authorNameInput.value.trim();
   const comment = commentInput.value.trim();
   const plannedStartDate = plannedStartDateInput.value;
-  const totalRepairCostBefore = totalRepairCostBeforeInput.value;
-  const totalPartsCost = totalPartsCostInput.value;
-  const retailerSupportCost = retailerSupportCostInput.value;
-  const jlrkSupportCost = jlrkSupportCostInput.value;
+  const totalRepairCostBefore = onlyDigits(totalRepairCostBeforeInput.value);
+  const totalPartsCost = onlyDigits(totalPartsCostInput.value);
+  const retailerSupportCost = onlyDigits(retailerSupportCostInput.value);
+  const jlrkSupportCost = onlyDigits(jlrkSupportCostInput.value);
 
   if (!workshop) {
     setStatus('Workshop을 선택해주세요.', 'error');
@@ -244,6 +265,11 @@ saveBtn.addEventListener('click', async () => {
     }
     if (!selectedFile) {
       setStatus('1차 견적서를 첨부해주세요.', 'error');
+      return;
+    }
+    // 지원금은 부가세 제외 금액이고, JLRK가 리테일러보다 많을 수 없다
+    if (Number(jlrkSupportCost || 0) > Number(retailerSupportCost || 0)) {
+      setStatus('보완 필요: JLRK 지원금은 리테일러 지원금보다 클 수 없습니다.', 'error');
       return;
     }
   }

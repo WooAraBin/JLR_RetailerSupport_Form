@@ -23,6 +23,7 @@ function publicView(row) {
     approval_file_name: row.approval_file_name,
     invoice_file_name: row.invoice_file_name,
     estimate_check: row.estimate_check,
+    invoice_check: row.invoice_check,
     request_date: row.request_date,
   };
 }

@@ -14,13 +14,14 @@ const STATUS_STEPS = [
   { key: 'In review', label: '검토중', cls: 's2' },
   { key: 'Done', label: '검토 완료', cls: 's3' },
   { key: 'Paid', label: '지급 완료', cls: 's4' },
+  { key: 'Cancelled', label: '취소', cls: 's4' },
 ];
 
 // 첨부 3칸 — 접수 때 ①②, 인보이스는 나중에. 파일 삭제는 JLRK(관리자)만 한다.
 const SLOTS = [
   { key: 'approval', label: '① 이메일 승인본 캡처', nameField: 'approval_file_name' },
   { key: 'estimate', label: '② 1차 견적서', nameField: 'file_name' },
-  { key: 'invoice', label: '③ 최종 마감 인보이스', nameField: 'invoice_file_name' },
+  { key: 'invoice', label: '③ 최종 마감 인보이스', nameField: 'invoice_file_name', hint: '할인 적용본 · DMS에서 PDF로 뽑아 올려주세요' },
 ];
 
 function statusOf(key) {
@@ -39,20 +40,52 @@ function won(v) {
 let current = null;              // 조회된 티켓
 const pendingFiles = {};         // 칸별로 새로 고른 파일 { approval, estimate, invoice }
 
-function checkBox(check) {
-  if (!check || !check.status) {
-    return '<div class="check-none">견적서 수치 자동 대조: 아직 확인하지 않았습니다.</div>';
+// 견적서 자동 확인 — 항목 이름만 나열하면 무슨 말인지 모른다. 금액을 문장으로 한 줄씩 적는다.
+const MONEY_LINES = [
+  { field: 'total_repair_cost_before', label: '견적서 금액', en: 'Total Repair Cost (Before)' },
+  { field: 'total_parts_cost', label: '그중 부품 금액', en: 'Total Parts Cost' },
+  { field: 'retailer_support_cost', label: '리테일러 지원금', en: 'Retailer Support Cost' },
+  { field: 'jlrk_support_cost', label: 'JLRK 지원금', en: 'JLRK Support Cost' },
+];
+
+function checkBox(t) {
+  const check = t.estimate_check;
+  const lines = MONEY_LINES.filter((m) => Number(t[m.field] || 0) > 0).map((m) => {
+    const amount = Number(t[m.field]).toLocaleString() + '원';
+    let mark = '';
+    if (check && (check.status === 'match' || check.status === 'mismatch')) {
+      const confirmed = check.status === 'match' || (check.matched || []).includes(m.en);
+      mark = confirmed ? ' — ✅ 견적서에서 확인' : ' — 견적서에서 확인 안 됨';
+    }
+    return `· ${m.label} <b>${amount}</b>${mark}`;
+  });
+
+  let tail = '';
+  if (!check || !check.status) tail = '견적서 자동 확인은 아직 하지 않았습니다.';
+  else if (check.status === 'match') tail = '적으신 금액이 견적서에서 모두 확인되었습니다.';
+  else if (check.status === 'mismatch') tail = '확인되지 않은 금액은 JLRK가 견적서를 보고 직접 확인합니다.';
+  else tail = `자동 확인 불가 — ${check.reason || '견적서에서 글자를 읽지 못했습니다'}. JLRK가 직접 확인합니다.`;
+
+  const cls = check && check.status === 'match' ? 'check-ok' : 'check-none';
+  return `<div class="${cls}"><b>견적서 자동 확인 (1차 견적서 기준 · 부가세 제외)</b><br>${lines.join('<br>')}<br>${tail}</div>`;
+}
+
+// 인보이스 자동 판독 결과 — 어긋나면 무엇이 어긋났는지 한 줄씩
+function invoiceBox(t) {
+  const c = t.invoice_check;
+  if (!c || !c.status) return '';
+  if (c.status === 'ok') {
+    const s = c.summary || {};
+    return `<div class="check-ok"><b>인보이스 자동 확인 — 이상 없습니다</b><br>
+      · 부품 <b>${(s['부품'] || 0).toLocaleString()}원</b> · 공임 <b>${(s['공임'] || 0).toLocaleString()}원</b><br>
+      · 할인 <b>${(s['할인'] || 0).toLocaleString()}원</b> · 청구금액 <b>${(s['청구금액'] || 0).toLocaleString()}원</b></div>`;
   }
-  if (check.status === 'match') {
-    return '<div class="check-ok">✅ 적으신 금액이 1차 견적서에서 모두 확인되었습니다.</div>';
+  if (c.status === 'needs_fix') {
+    return `<div class="locked-note"><b>보완 필요 — 인보이스가 견적서·지원금과 맞지 않습니다.</b><br>
+      ${(c.issues || []).map((i) => '· ' + i).join('<br>')}<br>
+      고쳐서 다시 올려주시거나, 내용이 달라졌다면 <b>이 건을 취소하고 새로 접수</b>해주세요.</div>`;
   }
-  if (check.status === 'mismatch') {
-    // 견적서 양식이 지점마다 달라 자동으로 못 찾는 경우가 많다(실측 20건 중 14건).
-    // 리테일러에게 틀렸다고 알리면 오해를 주므로, 확인된 것만 알리고 나머지는 JLRK가 본다.
-    const okList = (check.matched || []).join(', ');
-    return `<div class="check-none">견적서 자동 확인: ${okList ? okList + ' 는 견적서에서 확인되었습니다. ' : ''}나머지 금액은 JLRK가 견적서를 보고 직접 확인합니다.</div>`;
-  }
-  return `<div class="check-none">견적서 수치 자동 대조: ${check.reason || '확인 불가'} — JLRK가 직접 확인합니다.</div>`;
+  return `<div class="check-none"><b>인보이스 자동 확인 불가</b><br>· ${c.reason || ''}<br>DMS에서 PDF로 뽑은 청구서를 올려주시면 자동으로 확인됩니다.</div>`;
 }
 
 // 빠진 첨부를 그대로 알려준다 — 무엇을 더 올려야 하는지가 이 화면의 핵심이다
@@ -88,7 +121,7 @@ function renderTicket(t) {
   current = t;
   SLOTS.forEach((s) => { pendingFiles[s.key] = null; });
   const st = statusOf(t.rcsm_approval);
-  const locked = t.rcsm_approval === 'Paid';
+  const locked = t.rcsm_approval === 'Paid' || t.rcsm_approval === 'Cancelled';
 
   lkResult.innerHTML = `
     <div class="ticket-head">
@@ -97,8 +130,9 @@ function renderTicket(t) {
       <span class="ticket-meta">${t.workshop} · ${t.vehicle_number} · 작성자 ${t.author_name || '-'} · 접수 ${String(t.request_date || '').slice(0, 10)}</span>
     </div>
 
-    ${locked ? '<div class="locked-note">지급이 끝난 건이라 수정할 수 없습니다. 고칠 내용이 있으면 JLRK 담당자에게 연락해주세요.</div>' : ''}
-    ${checkBox(t.estimate_check)}
+    ${locked ? `<div class="locked-note">${t.rcsm_approval === 'Cancelled' ? '취소된 건입니다. 새로 접수해주세요.' : '지급이 끝난 건이라 수정할 수 없습니다. 고칠 내용이 있으면 JLRK 담당자에게 연락해주세요.'}</div>` : ''}
+    ${checkBox(t)}
+    ${invoiceBox(t)}
 
     ${missingBox(t)}
 
@@ -107,7 +141,7 @@ function renderTicket(t) {
       ${SLOTS.map((slot) => `
         <div class="slot-row">
           <div class="slot-name">
-            <b>${slot.label}</b>
+            <b>${slot.label}</b>${slot.hint ? `<span class="slot-hint">${slot.hint}</span>` : ''}
             <span class="${t[slot.nameField] ? 'slot-have' : 'slot-none'}">${t[slot.nameField] || '아직 없습니다'}</span>
           </div>
           ${locked ? '' : `
@@ -123,20 +157,20 @@ function renderTicket(t) {
 
     <div class="grid2">
       <div class="field">
-        <label class="label">Total Repair Cost (Before)<span class="label-sub">원</span></label>
-        <input type="number" id="lkBefore" class="date-input" value="${t.total_repair_cost_before ?? ''}" ${locked ? 'disabled' : ''}>
+        <label class="label">견적서 금액<span class="label-sub">부가세 제외</span></label>
+        <input type="text" id="lkBefore" class="date-input money" inputmode="numeric" value="${t.total_repair_cost_before == null ? '' : Number(t.total_repair_cost_before).toLocaleString()}" ${locked ? 'disabled' : ''}>
       </div>
       <div class="field">
-        <label class="label">Total Parts Cost<span class="label-sub">원</span></label>
-        <input type="number" id="lkParts" class="date-input" value="${t.total_parts_cost ?? ''}" ${locked ? 'disabled' : ''}>
+        <label class="label">부품 금액<span class="label-sub">부가세 제외</span></label>
+        <input type="text" id="lkParts" class="date-input money" inputmode="numeric" value="${t.total_parts_cost == null ? '' : Number(t.total_parts_cost).toLocaleString()}" ${locked ? 'disabled' : ''}>
       </div>
       <div class="field">
-        <label class="label">Retailer Support Cost<span class="label-sub">원</span></label>
-        <input type="number" id="lkRetailer" class="date-input" value="${t.retailer_support_cost ?? ''}" ${locked ? 'disabled' : ''}>
+        <label class="label">리테일러 지원금<span class="label-sub">부가세 제외</span></label>
+        <input type="text" id="lkRetailer" class="date-input money" inputmode="numeric" value="${t.retailer_support_cost == null ? '' : Number(t.retailer_support_cost).toLocaleString()}" ${locked ? 'disabled' : ''}>
       </div>
       <div class="field">
-        <label class="label">JLRK Support Cost<span class="label-sub">원</span></label>
-        <input type="number" id="lkJlrk" class="date-input" value="${t.jlrk_support_cost ?? ''}" ${locked ? 'disabled' : ''}>
+        <label class="label">JLRK 지원금<span class="label-sub">리테일러 지원금보다 클 수 없습니다</span></label>
+        <input type="text" id="lkJlrk" class="date-input money" inputmode="numeric" value="${t.jlrk_support_cost == null ? '' : Number(t.jlrk_support_cost).toLocaleString()}" ${locked ? 'disabled' : ''}>
       </div>
     </div>
 
@@ -145,7 +179,9 @@ function renderTicket(t) {
       <input type="text" id="lkComment" class="date-input" value="${(t.comment || '').replace(/"/g, '&quot;')}" ${locked ? 'disabled' : ''}>
     </div>
 
-    ${locked ? '' : '<button id="lkSaveBtn" class="save-btn">저장</button>'}
+    ${locked ? '' : `
+      <button id="lkSaveBtn" class="save-btn">저장</button>
+      <button id="lkCancelBtn" class="cancel-btn">이 건 취소하고 새로 접수하기</button>`}
   `;
   lkResult.style.display = '';
 
@@ -162,7 +198,9 @@ function renderTicket(t) {
     });
   });
 
+  lkResult.querySelectorAll('.money').forEach(bindMoneyInput); // app.js 의 콤마 입력을 그대로 쓴다
   document.getElementById('lkSaveBtn').addEventListener('click', saveTicket);
+  document.getElementById('lkCancelBtn').addEventListener('click', cancelTicket);
 }
 
 async function searchTicket() {
@@ -207,6 +245,12 @@ async function saveTicket() {
       uploaded[slot.key] = up;
     }
 
+    const jlrkV = Number(onlyDigits(document.getElementById('lkJlrk').value) || 0);
+    const retV = Number(onlyDigits(document.getElementById('lkRetailer').value) || 0);
+    if (jlrkV > retV) {
+      return setLkStatus('보완 필요: JLRK 지원금은 리테일러 지원금보다 클 수 없습니다.', 'error');
+    }
+
     setLkStatus('저장 중...');
     const res = await fetch('/api/update', {
       method: 'POST',
@@ -215,10 +259,10 @@ async function saveTicket() {
         ticketNumber: current.ticket_number,
         authorName: lkAuthor.value.trim(),
         comment: document.getElementById('lkComment').value.trim(),
-        totalRepairCostBefore: document.getElementById('lkBefore').value,
-        totalPartsCost: document.getElementById('lkParts').value,
-        retailerSupportCost: document.getElementById('lkRetailer').value,
-        jlrkSupportCost: document.getElementById('lkJlrk').value,
+        totalRepairCostBefore: onlyDigits(document.getElementById('lkBefore').value),
+        totalPartsCost: onlyDigits(document.getElementById('lkParts').value),
+        retailerSupportCost: onlyDigits(document.getElementById('lkRetailer').value),
+        jlrkSupportCost: onlyDigits(document.getElementById('lkJlrk').value),
         approvalPath: uploaded.approval?.filePath ?? null,
         approvalName: uploaded.approval?.fileName ?? null,
         estimatePath: uploaded.estimate?.filePath ?? null,
@@ -242,6 +286,25 @@ async function saveTicket() {
     setLkStatus('❌ ' + (err.message || '네트워크 오류'), 'error');
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function cancelTicket() {
+  if (!current) return;
+  if (!confirm('이 건을 취소할까요?\n취소하면 수정할 수 없고, 새로 접수하셔야 합니다.')) return;
+  setLkStatus('취소하는 중...');
+  try {
+    const res = await fetch('/api/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticketNumber: current.ticket_number, authorName: lkAuthor.value.trim(), cancel: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) return setLkStatus('❌ ' + (data.error || '취소 실패'), 'error');
+    renderTicket(data.ticket);
+    setLkStatus('취소했습니다. 새로 접수해주세요.', 'success');
+  } catch (err) {
+    setLkStatus('❌ ' + (err.message || '네트워크 오류'), 'error');
   }
 }
 
