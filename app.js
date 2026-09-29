@@ -89,7 +89,7 @@ function openProgram(key) {
   document.getElementById('approvalField').style.display = isRepair ? '' : 'none';
   // 사고차 지원금은 이번 개편 대상이 아니다 — 개편 전 모습(1열·옛 라벨·옛 칸 순서) 그대로 둔다
   formWrap.classList.toggle('one-col', !isRepair);
-  document.getElementById('fileLabel').firstChild.nodeValue = isRepair ? '② 1차 견적서' : 'Files & Media';
+  document.getElementById('fileLabel').firstChild.nodeValue = isRepair ? '② 견적서' : 'Files & Media';
   // Comment 는 이메일 승인에 쓴 내용을 다시 적는 칸이 아니다 — 특이사항만(09-29 보스 지시)
   commentInput.placeholder = isRepair ? '예: 고객 요청으로 10월 초 작업 예정 (특이사항만)' : '메모 / 차량 정보 등';
   // 개편 전 순서는 차량번호 → Comment → 수리 예정일이었다
@@ -136,7 +136,7 @@ function bindMoneyInput(el) {
 }
 document.querySelectorAll('.money').forEach(bindMoneyInput);
 
-let selectedFile = null;      // ② 1차 견적서
+let selectedFile = null;      // ② 견적서
 let selectedApproval = null;  // ① 이메일 승인본 캡처
 
 function setStatus(message, type = '') {
@@ -254,7 +254,7 @@ saveBtn.addEventListener('click', async () => {
     return;
   }
 
-  // 수리 지원은 작성자명과 1차 견적서가 있어야 접수된다(조회·대조에 쓰인다)
+  // 수리 지원은 작성자명과 견적서가 있어야 접수된다(조회·대조에 쓰인다)
   if (currentProgram === REPAIR_KEY) {
     if (!authorName) {
       setStatus('작성자명을 입력해주세요. 나중에 티켓을 찾을 때 씁니다.', 'error');
@@ -265,7 +265,7 @@ saveBtn.addEventListener('click', async () => {
       return;
     }
     if (!selectedFile) {
-      setStatus('1차 견적서를 첨부해주세요.', 'error');
+      setStatus('견적서를 첨부해주세요.', 'error');
       return;
     }
     // 지원금은 부가세 제외 금액이고, JLRK가 리테일러보다 많을 수 없다

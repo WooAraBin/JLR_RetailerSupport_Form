@@ -3,7 +3,7 @@
 // · 지급 완료(Paid)는 서버에서 막는다. 화면만 잠그면 요청을 직접 보내 고칠 수 있다.
 // · 인보이스가 처음 붙으면 상태를 '인보이스 마감'(In progress)으로 올린다.
 //   이미 검토 완료·지급 완료로 올라간 건은 되돌리지 않는다.
-// · 수치가 바뀌면 1차 견적서와 다시 대조해 결과를 갱신한다.
+// · 수치가 바뀌면 견적서와 다시 대조해 결과를 갱신한다.
 
 const path = require('path');
 const { supabase, TABLE, BUCKET } = require('./_supabase');
@@ -137,7 +137,7 @@ module.exports = async (req, res) => {
       patch.rcsm_approval = 'In review';
     }
 
-    // 수치가 바뀌었으면 1차 견적서와 다시 대조한다
+    // 수치가 바뀌었으면 견적서와 다시 대조한다
     const amountsChanged =
       patch.total_repair_cost_before !== row.total_repair_cost_before ||
       patch.total_parts_cost !== row.total_parts_cost ||

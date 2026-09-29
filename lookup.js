@@ -20,7 +20,7 @@ const STATUS_STEPS = [
 // 첨부 3칸 — 접수 때 ①②, 인보이스는 나중에. 파일 삭제는 JLRK(관리자)만 한다.
 const SLOTS = [
   { key: 'approval', label: '① 이메일 승인본 캡처', nameField: 'approval_file_name' },
-  { key: 'estimate', label: '② 1차 견적서', nameField: 'file_name' },
+  { key: 'estimate', label: '② 견적서', nameField: 'file_name' },
   { key: 'invoice', label: '③ 최종 마감 인보이스', nameField: 'invoice_file_name', hint: '할인 적용본 · DMS에서 PDF로 뽑아 올려주세요' },
 ];
 
@@ -40,34 +40,44 @@ function won(v) {
 let current = null;              // 조회된 티켓
 const pendingFiles = {};         // 칸별로 새로 고른 파일 { approval, estimate, invoice }
 
-// 견적서 자동 확인 — 항목 이름만 나열하면 무슨 말인지 모른다. 금액을 문장으로 한 줄씩 적는다.
-const MONEY_LINES = [
-  { field: 'total_repair_cost_before', label: '견적서 금액', en: 'Total Repair Cost (Before)' },
-  { field: 'total_parts_cost', label: '그중 부품 금액', en: 'Total Parts Cost' },
-  { field: 'retailer_support_cost', label: '리테일러 지원금', en: 'Retailer Support Cost' },
-  { field: 'jlrk_support_cost', label: 'JLRK 지원금', en: 'JLRK Support Cost' },
-];
+// 견적서 자동 확인 — 견적서(DMS 고정 양식)에서 읽은 금액과 적으신 금액을 항목별로 맞춘다.
+// 지원금 두 개는 견적서에 없는 값(협의로 정하는 금액)이라 대조 대상이 아니다.
+const STATE_MARK = {
+  confirmed: '✅ 견적서에서 확인',
+  different: '⚠️ 견적서와 다릅니다',
+  not_in_estimate: '견적서에는 없는 금액입니다 (협의로 정하는 금액)',
+  unknown: '',
+};
 
 function checkBox(t) {
   const check = t.estimate_check;
-  const lines = MONEY_LINES.filter((m) => Number(t[m.field] || 0) > 0).map((m) => {
-    const amount = Number(t[m.field]).toLocaleString() + '원';
-    let mark = '';
-    if (check && (check.status === 'match' || check.status === 'mismatch')) {
-      const confirmed = check.status === 'match' || (check.matched || []).includes(m.en);
-      mark = confirmed ? ' — ✅ 견적서에서 확인' : ' — 견적서에서 확인 안 됨';
-    }
-    return `· ${m.label} <b>${amount}</b>${mark}`;
+
+  if (!check || !check.status || check.status === 'skipped') {
+    return '<div class="check-none"><b>견적서 자동 확인</b><br>아직 확인하지 않았습니다.</div>';
+  }
+
+  if (check.status === 'unreadable') {
+    return `<div class="check-none"><b>견적서 자동 확인 불가</b><br>· ${check.reason || ''}<br>DMS에서 뽑은 견적서를 올려주시면 자동으로 확인됩니다.</div>`;
+  }
+
+  const lines = (check.lines || []).map((l) => {
+    const amount = Number(l.amount || 0).toLocaleString() + '원';
+    const mark = STATE_MARK[l.state] || '';
+    const doc = l.state === 'different' && l.doc ? ` (견적서 ${Number(l.doc).toLocaleString()}원)` : '';
+    return `· ${l.label} <b>${amount}</b>${mark ? ' — ' + mark : ''}${doc}`;
   });
 
-  let tail = '';
-  if (!check || !check.status) tail = '견적서 자동 확인은 아직 하지 않았습니다.';
-  else if (check.status === 'match') tail = '적으신 금액이 견적서에서 모두 확인되었습니다.';
-  else if (check.status === 'mismatch') tail = '확인되지 않은 금액은 JLRK가 견적서를 보고 직접 확인합니다.';
-  else tail = `자동 확인 불가 — ${check.reason || '견적서에서 글자를 읽지 못했습니다'}. JLRK가 직접 확인합니다.`;
+  const s2 = check.summary;
+  const docLine = s2
+    ? `<br><span class="check-sub">견적서에서 읽은 값 — 부품 ${Number(s2['부품'] || 0).toLocaleString()}원 · 공임 ${Number(s2['공임'] || 0).toLocaleString()}원 · 합계 ${Number(s2['합계'] || 0).toLocaleString()}원 (부가세 제외)</span>`
+    : '';
 
-  const cls = check && check.status === 'match' ? 'check-ok' : 'check-none';
-  return `<div class="${cls}"><b>견적서 자동 확인 (1차 견적서 기준 · 부가세 제외)</b><br>${lines.join('<br>')}<br>${tail}</div>`;
+  if (check.status === 'ok') {
+    return `<div class="check-ok"><b>견적서 자동 확인 — 이상 없습니다</b><br>${lines.join('<br>')}${docLine}</div>`;
+  }
+
+  return `<div class="locked-note"><b>보완 필요 — 적으신 금액이 견적서와 맞지 않습니다.</b><br>${lines.join('<br>')}${docLine}<br>
+    금액을 고쳐 저장하시거나, 다른 견적서라면 <b>견적서를 다시 첨부</b>해주세요.</div>`;
 }
 
 // 인보이스 자동 판독 결과 — 어긋나면 무엇이 어긋났는지 한 줄씩

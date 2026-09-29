@@ -664,3 +664,4 @@ body {
 
 /* 보완 필요·확인 결과 박스 안에서도 줄이 붙지 않게 */
 .check-ok, .check-warn, .check-none, .locked-note { line-height: 1.75; }
+.check-sub { font-size: 11px; color: var(--ink3); }

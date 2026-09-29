@@ -1,15 +1,29 @@
-// 1차 견적서 수치 자동 대조 (2026-09-23)
+// 견적서 수치 자동 확인 (2026-09-29 전면 교체)
 //
-// 접수자가 적은 금액이 실제 견적서에 있는 숫자인지 1차로 확인해 준다.
-// JLRK가 승인 전에 다시 보는 것이 최종 확인이고, 여기서 틀렸다고 접수를 막지는 않는다.
+// 견적서도 인보이스와 같은 DMS 고정 양식(자동차 점검·정비 청구서)이다.
+// 처음엔 문서 전체 글자에서 숫자를 훑었는데, 표 칸이 서로 붙어 나와서
+// (`100002746900` 안에 부품 2,746,900이 들어 있는 식) 멀쩡한 건도 「확인 안 됨」이 됐다.
+// 그래서 인보이스와 같은 **좌표 판독**으로 바꿨다 — 합계 줄의 라벨 아래 값을 읽는다.
 //
-// 읽을 수 있는 것: 글자가 들어 있는 PDF, 엑셀(xlsx/xls), CSV·텍스트.
-// 읽을 수 없는 것: 스캔해서 사진으로 만든 PDF, 이미지 — 그때는 'unreadable'로 남기고 넘어간다.
+// 대조 기준(보스 확정)
+//   · 견적서 금액 = 부품 + 공임 (= 합계, 부가세 제외)
+//   · 부품 금액   = 부품
+//   · 리테일러·JLRK 지원금은 견적서에 없는 값이라 대조 대상이 아니다(협의로 정하는 금액).
 
-const path = require('path');
+const { readInvoicePdf } = require('./_invoice');
 
-function collectNumbers(text) {
-  // 1,234,000 / 1 234 000 / 1234000원 → 숫자만 남겨 모은다(4자리 이상만 금액으로 본다)
+const XLSX_EXT = ['.xlsx', '.xls', '.csv'];
+
+function ext(name) {
+  const m = String(name || '').toLowerCase().match(/\.[a-z0-9]+$/);
+  return m ? m[0] : '';
+}
+
+/** 엑셀·CSV 견적서는 표 구조가 제각각이라 숫자 목록으로만 확인한다(예전 방식 유지) */
+function numbersFromSheet(buffer) {
+  const XLSX = require('xlsx');
+  const wb = XLSX.read(buffer, { type: 'buffer' });
+  const text = wb.SheetNames.map((n) => XLSX.utils.sheet_to_csv(wb.Sheets[n])).join('\n');
   const found = new Set();
   const re = /\d[\d,]*/g;
   let m;
@@ -20,89 +34,97 @@ function collectNumbers(text) {
   return [...found];
 }
 
-// 실제 견적서를 열어보니 「수리비 합계」처럼 한 칸으로 안 찍히고 부품비+공임으로 나뉘어 있거나,
-// 끝자리가 반올림돼 있는 경우가 많다. 그래서 다음 중 하나면 확인된 것으로 본다.
-//   ① 같은 숫자가 있다  ② 1% 안쪽으로 차이가 난다(반올림)  ③ 견적서 숫자 둘을 더하면 같다
-const TOLERANCE = 0.01;
-
-function foundIn(numbers, value) {
-  if (numbers.includes(value)) return 'exact';
-  for (const n of numbers) {
-    if (Math.abs(n - value) <= value * TOLERANCE) return 'rounded';
-  }
-  for (let i = 0; i < numbers.length; i += 1) {
-    for (let j = i + 1; j < numbers.length; j += 1) {
-      if (Math.abs(numbers[i] + numbers[j] - value) <= value * TOLERANCE) return 'sum';
-    }
-  }
-  return null;
+function close(a, b) {
+  if (!a || !b) return false;
+  return Math.abs(a - b) <= Math.max(1000, b * 0.01);
 }
-
-async function extractText(buffer, fileName) {
-  const ext = path.extname(fileName || '').toLowerCase();
-
-  if (ext === '.pdf') {
-    const pdfParse = require('pdf-parse');
-    const out = await pdfParse(buffer);
-    return out.text || '';
-  }
-
-  if (ext === '.xlsx' || ext === '.xls' || ext === '.csv') {
-    const XLSX = require('xlsx');
-    const wb = XLSX.read(buffer, { type: 'buffer' });
-    return wb.SheetNames.map((name) => XLSX.utils.sheet_to_csv(wb.Sheets[name])).join('\n');
-  }
-
-  if (ext === '.txt') return buffer.toString('utf8');
-
-  return '';
-}
-
-const AMOUNT_LABELS = {
-  total_repair_cost_before: 'Total Repair Cost (Before)',
-  total_parts_cost: 'Total Parts Cost',
-  retailer_support_cost: 'Retailer Support Cost',
-  jlrk_support_cost: 'JLRK Support Cost',
-};
 
 /**
- * @returns {{status:'match'|'mismatch'|'unreadable'|'skipped', missing?:string[], checked?:string[], reason?:string, checkedAt:string}}
+ * @returns {{status:'ok'|'needs_fix'|'unreadable'|'skipped', read?:object, lines?:Array, issues?:string[], reason?:string, checkedAt:string}}
+ *  lines — 화면에 그대로 뿌릴 항목별 결과 [{key,label,amount,state}] state: confirmed | different | not_in_estimate | unknown
  */
 async function checkEstimate(buffer, fileName, amounts) {
   const stamp = new Date().toISOString();
-  const entered = Object.entries(AMOUNT_LABELS)
-    .filter(([key]) => amounts[key] !== null && amounts[key] !== undefined && Number(amounts[key]) > 0)
-    .map(([key, label]) => ({ key, label, value: String(Number(amounts[key])) }));
+  const quote = Number(amounts.total_repair_cost_before || 0);
+  const parts = Number(amounts.total_parts_cost || 0);
+  const retailer = Number(amounts.retailer_support_cost || 0);
+  const jlrk = Number(amounts.jlrk_support_cost || 0);
 
-  if (entered.length === 0) {
+  if (!quote && !parts) {
     return { status: 'skipped', reason: '대조할 금액이 입력되지 않았습니다', checkedAt: stamp };
   }
 
-  let text = '';
+  const base = [
+    { key: 'quote', label: '견적서 금액', amount: quote },
+    { key: 'parts', label: '그중 부품 금액', amount: parts },
+    { key: 'retailer', label: '리테일러 지원금', amount: retailer, notInEstimate: true },
+    { key: 'jlrk', label: 'JLRK 지원금', amount: jlrk, notInEstimate: true },
+  ].filter((l) => l.amount > 0);
+
+  const e = ext(fileName);
+
+  // 엑셀 견적서 — 숫자 목록에 있는지만 본다
+  if (XLSX_EXT.includes(e)) {
+    let nums = [];
+    try {
+      nums = numbersFromSheet(buffer);
+    } catch {
+      return { status: 'unreadable', reason: '견적서를 읽지 못했습니다', checkedAt: stamp };
+    }
+    const lines = base.map((l) => ({
+      ...l,
+      state: l.notInEstimate ? 'not_in_estimate' : nums.some((n) => close(n, l.amount)) ? 'confirmed' : 'different',
+    }));
+    const issues = lines.filter((l) => l.state === 'different').map((l) => `${l.label} ${l.amount.toLocaleString()}원을 견적서에서 찾지 못했습니다`);
+    return { status: issues.length ? 'needs_fix' : 'ok', lines, issues, checkedAt: stamp };
+  }
+
+  if (e !== '.pdf') {
+    return { status: 'unreadable', reason: 'PDF나 엑셀로 올려주세요', checkedAt: stamp };
+  }
+
+  let read = null;
   try {
-    text = await extractText(buffer, fileName);
+    read = await readInvoicePdf(buffer); // 같은 양식이라 판독기를 함께 쓴다
   } catch (err) {
-    return { status: 'unreadable', reason: '파일을 읽지 못했습니다', checkedAt: stamp };
+    return { status: 'unreadable', reason: '견적서를 읽지 못했습니다 (' + (err.message || '') + ')', checkedAt: stamp };
+  }
+  if (!read) {
+    return {
+      status: 'unreadable',
+      reason: '합계 줄을 찾지 못했습니다 — DMS에서 뽑은 견적서 원본인지 확인해주세요',
+      checkedAt: stamp,
+    };
   }
 
-  if (!text || text.replace(/\s/g, '').length < 20) {
-    return { status: 'unreadable', reason: '스캔 이미지라 글자를 읽을 수 없습니다', checkedAt: stamp };
-  }
+  const docParts = read['부품'] || 0;
+  const docLabour = read['공임'] || 0;
+  // 견적서의 「합계」 칸은 할인이 적용된 뒤 값이다(실측: 부품+공임 3,035,900 → 합계 2,486,520).
+  // 견적서 금액은 **할인 전 부품 + 공임**으로 본다(보스 확정).
+  const docTotal = docParts + docLabour;
+  const docAfterDiscount = read['합계'] || 0;
 
-  const numbers = collectNumbers(text);
-  const missing = [];
-  const matched = [];
-  for (const e of entered) {
-    const how = foundIn(numbers, Number(e.value));
-    if (how) matched.push(e.label);
-    else missing.push(e.label);
+  const lines = base.map((l) => {
+    if (l.notInEstimate) return { ...l, state: 'not_in_estimate' };
+    if (l.key === 'quote') return { ...l, state: close(docTotal, l.amount) ? 'confirmed' : 'different', doc: docTotal };
+    if (l.key === 'parts') return { ...l, state: close(docParts, l.amount) ? 'confirmed' : 'different', doc: docParts };
+    return { ...l, state: 'unknown' };
+  });
+
+  const issues = lines
+    .filter((l) => l.state === 'different')
+    .map((l) => `${l.label} ${l.amount.toLocaleString()}원이 견적서의 ${(l.doc || 0).toLocaleString()}원과 다릅니다`);
+
+  if (retailer > 0 && jlrk > retailer) {
+    issues.push('JLRK 지원금이 리테일러 지원금보다 큽니다');
   }
 
   return {
-    status: missing.length === 0 ? 'match' : 'mismatch',
-    checked: entered.map((e) => e.label),
-    matched,
-    missing,
+    status: issues.length ? 'needs_fix' : 'ok',
+    read,
+    lines,
+    issues,
+    summary: { 부품: docParts, 공임: docLabour, 합계: docTotal, 할인후: docAfterDiscount },
     fileName: fileName || null,
     checkedAt: stamp,
   };

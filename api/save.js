@@ -100,7 +100,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Vehicle Number를 입력해주세요.' });
   }
 
-  // 수리 지원은 작성자명과 1차 견적서가 있어야 접수된다
+  // 수리 지원은 작성자명과 견적서가 있어야 접수된다
   // (작성자명은 나중에 본인 티켓을 여는 열쇠로도 쓰인다)
   const isRepairSupport = repairType === 'Repair Support';
   if (isRepairSupport && (!authorName || authorName.trim() === '')) {
@@ -110,7 +110,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: '이메일 승인본 캡처를 첨부해주세요.' });
   }
   if (isRepairSupport && !filePath) {
-    return res.status(400).json({ error: '1차 견적서를 첨부해주세요.' });
+    return res.status(400).json({ error: '견적서를 첨부해주세요.' });
   }
 
   try {
@@ -156,7 +156,7 @@ module.exports = async (req, res) => {
     // Total Repair Cost (After) = Before − Retailer − JLRK,
     // JLRK Parts Support = JLRK ÷ Total Parts Cost 는 화면에서 계산한다(노션 수식과 동일).
 
-    // 1차 견적서 수치 자동 대조 — 승인 전 1차 확인용. 실패해도 접수는 막지 않는다.
+    // 견적서 수치 자동 대조 — 승인 전 1차 확인용. 실패해도 접수는 막지 않는다.
     let estimateCheck = null;
     if (storedPath) {
       try {
