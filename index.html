@@ -212,7 +212,8 @@
     <!-- 내 티켓 조회 -->
     <div class="form-wrap" id="lookupWrap" style="display:none;">
       <p class="steps-note">
-        접수하실 때 적은 <b>티켓번호와 작성자명</b>으로 본인 티켓만 열립니다. 티켓번호는 접수 직후 화면에 나온 <b>260922ENB01</b> 같은 번호입니다.
+        접수하실 때 적은 <b>티켓번호와 작성자명</b>으로 본인 티켓만 열립니다. 티켓번호는 접수 직후 화면에 나온 <b>260922ENB01</b> 같은 번호입니다.<br>
+        <b>2026-09-23 이전에 접수하신 건</b>은 작성자명을 받기 전이라, 작성자명 칸에 <b>차량번호</b>를 넣어주세요.
       </p>
 
       <div class="grid2">
@@ -221,8 +222,8 @@
           <input type="text" id="lkTicket" class="date-input" placeholder="예: 260922ENB01" autocomplete="off">
         </div>
         <div class="field">
-          <label class="label">작성자명</label>
-          <input type="text" id="lkAuthor" class="date-input" placeholder="예: 김민수" autocomplete="off">
+          <label class="label">작성자명<span class="label-sub">예전 건은 차량번호</span></label>
+          <input type="text" id="lkAuthor" class="date-input" placeholder="예: 김민수 (예전 건은 12가3456)" autocomplete="off">
         </div>
       </div>
 

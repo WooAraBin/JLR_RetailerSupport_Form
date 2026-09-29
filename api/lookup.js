@@ -39,7 +39,7 @@ async function findTicket(ticketNumber, authorName) {
   if (!row) return { error: '그 티켓번호를 찾지 못했습니다. 번호를 다시 확인해주세요.' };
   if (!identityMatches(row, authorName)) {
     // 있는 티켓인지 없는 티켓인지 알려주지 않는다(남의 번호를 훑는 것을 막는다)
-    return { error: '티켓번호와 작성자명이 맞지 않습니다.' };
+    return { error: '티켓번호와 작성자명이 맞지 않습니다. 2026-09-23 이전에 접수하신 건은 작성자명 대신 차량번호를 넣어주세요.' };
   }
   return { row };
 }
@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
 
   const { ticketNumber, authorName } = req.body || {};
   if (!ticketNumber) return res.status(400).json({ error: '티켓번호를 입력해주세요.' });
-  if (!authorName) return res.status(400).json({ error: '작성자명을 입력해주세요.' });
+  if (!authorName) return res.status(400).json({ error: '작성자명을 입력해주세요. 2026-09-23 이전 접수 건은 차량번호를 넣어주세요.' });
 
   try {
     const { row, error } = await findTicket(ticketNumber, authorName);

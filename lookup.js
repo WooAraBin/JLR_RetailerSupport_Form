@@ -169,7 +169,7 @@ async function searchTicket() {
   const ticketNumber = lkTicket.value.trim();
   const authorName = lkAuthor.value.trim();
   if (!ticketNumber) return setLkStatus('티켓번호를 입력해주세요.', 'error');
-  if (!authorName) return setLkStatus('작성자명을 입력해주세요.', 'error');
+  if (!authorName) return setLkStatus('작성자명을 입력해주세요. 2026-09-23 이전 접수 건은 차량번호를 넣어주세요.', 'error');
 
   lkSearchBtn.disabled = true;
   setLkStatus('조회 중...');
