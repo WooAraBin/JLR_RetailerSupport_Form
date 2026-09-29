@@ -59,13 +59,15 @@
     <div class="form-wrap" id="formWrap" style="display:none;">
 
       <div class="steps" id="stepsGuide">
-        <div class="step"><b>① 접수 완료</b><span>1차 견적서 첨부</span></div>
+        <div class="step"><b>① 접수 완료</b><span>이메일 승인본 · 견적서</span></div>
         <div class="step-arrow">›</div>
         <div class="step"><b>② 인보이스 마감</b><span>최종 마감 인보이스 첨부</span></div>
         <div class="step-arrow">›</div>
-        <div class="step"><b>③ 검토 완료</b><span>JLRK 검토</span></div>
+        <div class="step"><b>③ 검토중</b><span>첨부 3종 완료</span></div>
         <div class="step-arrow">›</div>
-        <div class="step"><b>④ 지급 완료</b><span>비용 지급</span></div>
+        <div class="step"><b>④ 검토 완료</b><span>JLRK 검토</span></div>
+        <div class="step-arrow">›</div>
+        <div class="step"><b>⑤ 지급 완료</b><span>비용 지급</span></div>
       </div>
       <p class="steps-note" id="stepsNote">
         최종 마감 인보이스를 붙여야 검토·지급이 진행됩니다. 접수 후에는 <b>내 티켓 조회</b>에서 자료를 붙이거나 수치를 고칠 수 있고, <b>지급 완료된 건은 수정할 수 없습니다.</b>
@@ -180,11 +182,20 @@
       </div>
       </div>
 
+      <div class="field" id="approvalField">
+        <label class="label">① 이메일 승인본 캡처<span class="label-sub">필수</span></label>
+        <div class="file-wrap">
+          <input type="file" id="approvalInput" class="file-input-hidden" accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx">
+          <button type="button" id="approvalBtn" class="file-btn">파일 선택</button>
+          <span id="approvalName" class="file-name">선택된 파일 없음</span>
+        </div>
+      </div>
+
       <div class="field">
-        <label class="label" id="fileLabel">첨부<span class="label-sub" id="fileSub">1차 견적서 · 필수</span></label>
+        <label class="label" id="fileLabel">② 1차 견적서<span class="label-sub" id="fileSub">필수</span></label>
         <ul class="filelist" id="fileGuide">
-          <li><b>지금 첨부</b> — 1차 견적서 (PDF·엑셀). 위에 적은 금액이 견적서 수치와 같아야 합니다</li>
-          <li><b>나중에 첨부</b> — 최종 마감 인보이스. 인보이스가 나오면 <b>내 티켓 조회</b>에서 붙여주세요</li>
+          <li>PDF·엑셀로 올려주세요. 위에 적은 금액이 견적서 수치와 같아야 합니다</li>
+          <li><b>③ 최종 마감 인보이스는 나중에</b> — 인보이스가 나오면 <b>내 티켓 조회</b>에서 붙여주세요</li>
         </ul>
         <div class="file-wrap">
           <input type="file" id="fileInput" class="file-input-hidden" accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx">

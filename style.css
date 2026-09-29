@@ -600,3 +600,38 @@ body {
 
 /* 사고차 지원금은 개편 대상이 아니다 — 2열 틀을 풀어 예전처럼 한 줄로 */
 .form-wrap.one-col .grid2 { grid-template-columns: 1fr; }
+
+/* ===== 2026-09-29 — 첨부 3칸 · 최종 지원금 표시 ===== */
+.slot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 0;
+  border-bottom: 1px dashed #e7eaef;
+}
+.slot-row:last-child { border-bottom: 0; }
+
+.slot-name { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+.slot-name b { font-size: 12.5px; color: var(--ink); }
+.slot-have { font-size: 11.5px; color: var(--up); }
+.slot-none { font-size: 11.5px; color: var(--down); }
+
+.support-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+.support-box.warn { border-color: #F7C9D2; background: #FFF7F8; }
+.support-label { font-size: 11.5px; font-weight: 700; color: var(--ink2); }
+.support-value { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.support-side { font-size: 12px; color: var(--ink2); text-align: right; }
+.support-warn { color: var(--down); font-weight: 800; margin-top: 3px; }

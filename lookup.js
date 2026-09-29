@@ -11,8 +11,16 @@ const lkResult = document.getElementById('lkResult');
 const STATUS_STEPS = [
   { key: 'Not started', label: '접수 완료', cls: 's1' },
   { key: 'In progress', label: '인보이스 마감', cls: 's2' },
+  { key: 'In review', label: '검토중', cls: 's2' },
   { key: 'Done', label: '검토 완료', cls: 's3' },
   { key: 'Paid', label: '지급 완료', cls: 's4' },
+];
+
+// 첨부 3칸 — 접수 때 ①②, 인보이스는 나중에. 파일 삭제는 JLRK(관리자)만 한다.
+const SLOTS = [
+  { key: 'approval', label: '① 이메일 승인본 캡처', nameField: 'approval_file_name' },
+  { key: 'estimate', label: '② 1차 견적서', nameField: 'file_name' },
+  { key: 'invoice', label: '③ 최종 마감 인보이스', nameField: 'invoice_file_name' },
 ];
 
 function statusOf(key) {
@@ -28,8 +36,8 @@ function won(v) {
   return v === null || v === undefined || v === '' ? '' : Number(v).toLocaleString();
 }
 
-let current = null;        // 조회된 티켓
-let invoiceFile = null;    // 새로 붙일 인보이스
+let current = null;              // 조회된 티켓
+const pendingFiles = {};         // 칸별로 새로 고른 파일 { approval, estimate, invoice }
 
 function checkBox(check) {
   if (!check || !check.status) {
@@ -47,9 +55,38 @@ function checkBox(check) {
   return `<div class="check-none">견적서 수치 자동 대조: ${check.reason || '확인 불가'} — JLRK가 직접 확인합니다.</div>`;
 }
 
+// 빠진 첨부를 그대로 알려준다 — 무엇을 더 올려야 하는지가 이 화면의 핵심이다
+function missingBox(t) {
+  const missing = SLOTS.filter((s) => !t[s.nameField]);
+  if (missing.length === 0) {
+    return '<div class="check-ok">✅ 첨부 3종이 모두 들어왔습니다. JLRK 검토 순서입니다.</div>';
+  }
+  return `<div class="locked-note">
+    <b>보완이 필요합니다.</b> 아래 ${missing.length}가지를 올려주셔야 검토가 진행됩니다.<br>
+    ${missing.map((s) => `· ${s.label}`).join('<br>')}
+  </div>`;
+}
+
+// 최종 JLRK 지원 금액 — 리테일러사 지원금이 더 적으면 빨간 글씨로 경고한다(보스 지시)
+function supportBox(t) {
+  const jlrk = Number(t.jlrk_support_cost || 0);
+  const retailer = Number(t.retailer_support_cost || 0);
+  const warn = jlrk > 0 && retailer < jlrk;
+  return `<div class="support-box${warn ? ' warn' : ''}">
+    <div>
+      <div class="support-label">최종 JLRK 지원 금액</div>
+      <div class="support-value">${jlrk ? jlrk.toLocaleString() + '원' : '-'}</div>
+    </div>
+    <div class="support-side">
+      <div>리테일러사 지원금 <b>${retailer ? retailer.toLocaleString() + '원' : '-'}</b></div>
+      ${warn ? '<div class="support-warn">⚠️ 리테일러사 지원금이 더 낮습니다</div>' : ''}
+    </div>
+  </div>`;
+}
+
 function renderTicket(t) {
   current = t;
-  invoiceFile = null;
+  SLOTS.forEach((s) => { pendingFiles[s.key] = null; });
   const st = statusOf(t.rcsm_approval);
   const locked = t.rcsm_approval === 'Paid';
 
@@ -63,19 +100,26 @@ function renderTicket(t) {
     ${locked ? '<div class="locked-note">지급이 끝난 건이라 수정할 수 없습니다. 고칠 내용이 있으면 JLRK 담당자에게 연락해주세요.</div>' : ''}
     ${checkBox(t.estimate_check)}
 
+    ${missingBox(t)}
+
     <div class="field">
-      <label class="label">첨부 현황</label>
-      <ul class="filelist">
-        <li><b>1차 견적서</b> — ${t.file_name ? t.file_name : '<span style="color:#A32B43">없음</span>'}</li>
-        <li><b>최종 마감 인보이스</b> — ${t.invoice_file_name ? t.invoice_file_name : '<span style="color:#A32B43">아직 첨부되지 않았습니다</span>'}</li>
-      </ul>
-      ${locked ? '' : `
-      <div class="file-wrap">
-        <input type="file" id="lkInvoiceInput" class="file-input-hidden" accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx">
-        <button type="button" id="lkInvoiceBtn" class="file-btn">${t.invoice_file_name ? '인보이스 다시 첨부' : '최종 인보이스 첨부'}</button>
-        <span id="lkInvoiceName" class="file-name">선택된 파일 없음</span>
-      </div>`}
+      <label class="label">첨부 3종<span class="label-sub">파일 삭제는 JLRK 담당자만 할 수 있습니다</span></label>
+      ${SLOTS.map((slot) => `
+        <div class="slot-row">
+          <div class="slot-name">
+            <b>${slot.label}</b>
+            <span class="${t[slot.nameField] ? 'slot-have' : 'slot-none'}">${t[slot.nameField] || '아직 없습니다'}</span>
+          </div>
+          ${locked ? '' : `
+          <div class="file-wrap">
+            <input type="file" id="lkIn-${slot.key}" class="file-input-hidden" accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx">
+            <button type="button" class="file-btn" data-slot="${slot.key}">${t[slot.nameField] ? '다시 첨부' : '첨부'}</button>
+            <span id="lkName-${slot.key}" class="file-name">선택된 파일 없음</span>
+          </div>`}
+        </div>`).join('')}
     </div>
+
+    ${supportBox(t)}
 
     <div class="grid2">
       <div class="field">
@@ -107,13 +151,15 @@ function renderTicket(t) {
 
   if (locked) return;
 
-  const invoiceInput = document.getElementById('lkInvoiceInput');
-  const invoiceBtn = document.getElementById('lkInvoiceBtn');
-  const invoiceName = document.getElementById('lkInvoiceName');
-  invoiceBtn.addEventListener('click', () => invoiceInput.click());
-  invoiceInput.addEventListener('change', () => {
-    invoiceFile = invoiceInput.files[0] || null;
-    invoiceName.textContent = invoiceFile ? invoiceFile.name : '선택된 파일 없음';
+  SLOTS.forEach((slot) => {
+    const input = document.getElementById(`lkIn-${slot.key}`);
+    const btn = lkResult.querySelector(`button[data-slot="${slot.key}"]`);
+    const nameEl = document.getElementById(`lkName-${slot.key}`);
+    btn.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+      pendingFiles[slot.key] = input.files[0] || null;
+      nameEl.textContent = pendingFiles[slot.key] ? pendingFiles[slot.key].name : '선택된 파일 없음';
+    });
   });
 
   document.getElementById('lkSaveBtn').addEventListener('click', saveTicket);
@@ -152,13 +198,13 @@ async function saveTicket() {
   const btn = document.getElementById('lkSaveBtn');
   btn.disabled = true;
   try {
-    let invoicePath = null;
-    let invoiceName = null;
-    if (invoiceFile) {
-      setLkStatus('인보이스 업로드 중...');
-      const uploaded = await uploadFile(invoiceFile); // app.js 의 업로드를 그대로 쓴다
-      invoicePath = uploaded.filePath;
-      invoiceName = uploaded.fileName;
+    const uploaded = {};
+    for (const slot of SLOTS) {
+      const file = pendingFiles[slot.key];
+      if (!file) continue;
+      setLkStatus(`${slot.label} 업로드 중...`);
+      const up = await uploadFile(file); // app.js 의 업로드를 그대로 쓴다
+      uploaded[slot.key] = up;
     }
 
     setLkStatus('저장 중...');
@@ -173,17 +219,22 @@ async function saveTicket() {
         totalPartsCost: document.getElementById('lkParts').value,
         retailerSupportCost: document.getElementById('lkRetailer').value,
         jlrkSupportCost: document.getElementById('lkJlrk').value,
-        invoicePath,
-        invoiceName,
+        approvalPath: uploaded.approval?.filePath ?? null,
+        approvalName: uploaded.approval?.fileName ?? null,
+        estimatePath: uploaded.estimate?.filePath ?? null,
+        estimateName: uploaded.estimate?.fileName ?? null,
+        invoicePath: uploaded.invoice?.filePath ?? null,
+        invoiceName: uploaded.invoice?.fileName ?? null,
       }),
     });
     const data = await res.json();
     if (!res.ok) return setLkStatus('❌ ' + (data.error || '저장 실패'), 'error');
 
+    SLOTS.forEach((s) => { pendingFiles[s.key] = null; });
     renderTicket(data.ticket);
     setLkStatus(
-      invoiceName
-        ? '✅ 저장했습니다. 인보이스가 첨부되어 「인보이스 마감」 단계로 넘어갔습니다.'
+      data.ticket.rcsm_approval === 'In review'
+        ? '✅ 저장했습니다. 첨부 3종이 모두 들어와 「검토중」으로 넘어갔습니다.'
         : '✅ 저장했습니다.',
       'success'
     );

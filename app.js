@@ -8,6 +8,9 @@ const totalPartsCostInput = document.getElementById('totalPartsCostInput');
 const retailerSupportCostInput = document.getElementById('retailerSupportCostInput');
 const jlrkSupportCostInput = document.getElementById('jlrkSupportCostInput');
 const fileInput = document.getElementById('fileInput');
+const approvalInput = document.getElementById('approvalInput');
+const approvalBtn = document.getElementById('approvalBtn');
+const approvalNameEl = document.getElementById('approvalName');
 const fileBtn = document.getElementById('fileBtn');
 const fileNameEl = document.getElementById('fileName');
 const saveBtn = document.getElementById('saveBtn');
@@ -82,9 +85,11 @@ function openProgram(key) {
   document.getElementById('stepsNote').style.display = isRepair ? '' : 'none';
   document.getElementById('fileGuide').style.display = isRepair ? '' : 'none';
   document.getElementById('authorNameInput').closest('.field').style.display = isRepair ? '' : 'none';
+  // 이메일 승인본 칸은 수리 지원 전용(사고차는 개편 전 그대로)
+  document.getElementById('approvalField').style.display = isRepair ? '' : 'none';
   // 사고차 지원금은 이번 개편 대상이 아니다 — 개편 전 모습(1열·옛 라벨·옛 칸 순서) 그대로 둔다
   formWrap.classList.toggle('one-col', !isRepair);
-  document.getElementById('fileLabel').firstChild.nodeValue = isRepair ? '첨부' : 'Files & Media';
+  document.getElementById('fileLabel').firstChild.nodeValue = isRepair ? '② 1차 견적서' : 'Files & Media';
   commentInput.placeholder = isRepair ? '예: 우측 프론트 범퍼·펜더 교환, 고객 자비 부담 조정 요청' : '메모 / 차량 정보 등';
   // 개편 전 순서는 차량번호 → Comment → 수리 예정일이었다
   const commentField = commentInput.closest('.field');
@@ -94,7 +99,7 @@ function openProgram(key) {
   } else {
     dateField.parentNode.insertBefore(commentField, dateField);
   }
-  document.getElementById('fileSub').textContent = isRepair ? '1차 견적서 · 필수' : '선택';
+  document.getElementById('fileSub').textContent = isRepair ? '필수' : '선택';
   // 프로그램에서 유형이 이미 정해지므로 선택칸은 감추고 값만 박아둔다
   repairTypeSelect.value = prog.repairType;
   repairTypeField.style.display = 'none';
@@ -109,7 +114,8 @@ document.querySelectorAll('.menu-btn[data-go]').forEach((btn) => {
 });
 backBtn.addEventListener('click', showMenu);
 
-let selectedFile = null;
+let selectedFile = null;      // ② 1차 견적서
+let selectedApproval = null;  // ① 이메일 승인본 캡처
 
 function setStatus(message, type = '') {
   status.textContent = message;
@@ -143,6 +149,12 @@ async function loadOptions() {
 }
 
 // 파일 선택
+approvalBtn.addEventListener('click', () => approvalInput.click());
+approvalInput.addEventListener('change', () => {
+  selectedApproval = approvalInput.files[0] || null;
+  approvalNameEl.textContent = selectedApproval ? selectedApproval.name : '선택된 파일 없음';
+});
+
 fileBtn.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', () => {
@@ -226,6 +238,10 @@ saveBtn.addEventListener('click', async () => {
       setStatus('작성자명을 입력해주세요. 나중에 티켓을 찾을 때 씁니다.', 'error');
       return;
     }
+    if (!selectedApproval) {
+      setStatus('이메일 승인본 캡처를 첨부해주세요.', 'error');
+      return;
+    }
     if (!selectedFile) {
       setStatus('1차 견적서를 첨부해주세요.', 'error');
       return;
@@ -238,8 +254,18 @@ saveBtn.addEventListener('click', async () => {
     let filePath = null;
     let fileName = null;
 
+    let approvalPath = null;
+    let approvalName = null;
+
+    if (selectedApproval) {
+      setStatus('이메일 승인본 업로드 중...', '');
+      const up = await uploadFile(selectedApproval);
+      approvalPath = up.filePath;
+      approvalName = up.fileName;
+    }
+
     if (selectedFile) {
-      setStatus('파일 업로드 중...', '');
+      setStatus('견적서 업로드 중...', '');
       const uploaded = await uploadFile(selectedFile);
       filePath = uploaded.filePath;
       fileName = uploaded.fileName;
@@ -262,7 +288,9 @@ saveBtn.addEventListener('click', async () => {
         retailerSupportCost,
         jlrkSupportCost,
         filePath,
-        fileName
+        fileName,
+        approvalPath,
+        approvalName
       })
     });
 
@@ -282,6 +310,9 @@ saveBtn.addEventListener('click', async () => {
       fileInput.value = '';
       selectedFile = null;
       fileNameEl.textContent = '선택된 파일 없음';
+      approvalInput.value = '';
+      selectedApproval = null;
+      approvalNameEl.textContent = '선택된 파일 없음';
       setStatus(
         `✅ 티켓번호 ${data.ticketNumber} 가 생성되었습니다. 이 번호와 작성자명으로 「내 티켓 조회」에서 다시 여실 수 있습니다.`,
         'success'

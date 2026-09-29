@@ -83,7 +83,9 @@ module.exports = async (req, res) => {
     retailerSupportCost,
     jlrkSupportCost,
     filePath,
-    fileName
+    fileName,
+    approvalPath,
+    approvalName
   } = req.body;
 
   if (!workshop) {
@@ -104,6 +106,9 @@ module.exports = async (req, res) => {
   if (isRepairSupport && (!authorName || authorName.trim() === '')) {
     return res.status(400).json({ error: '작성자명을 입력해주세요.' });
   }
+  if (isRepairSupport && !approvalPath) {
+    return res.status(400).json({ error: '이메일 승인본 캡처를 첨부해주세요.' });
+  }
   if (isRepairSupport && !filePath) {
     return res.status(400).json({ error: '1차 견적서를 첨부해주세요.' });
   }
@@ -111,15 +116,21 @@ module.exports = async (req, res) => {
   try {
     const ticketNumber = await generateTicketNumber(workshop, repairType);
 
-    // 임시 경로에 올려둔 첨부를 티켓번호 이름으로 옮긴다
-    let storedPath = null;
-    if (filePath) {
-      const ext = path.extname(fileName || filePath) || '';
-      const target = `${ticketNumber}${ext}`;
-      const { error: moveError } = await supabase.storage.from(BUCKET).move(filePath, target);
-      storedPath = moveError ? filePath : target; // 옮기기 실패해도 원래 경로로 연결은 유지
-      if (moveError) console.error('첨부 이동 실패:', moveError);
+    // 임시 경로에 올려둔 첨부를 티켓번호 이름으로 옮긴다(칸마다 이름을 달리해 섞이지 않게)
+    async function moveInto(tempPath, originalName, suffix) {
+      if (!tempPath) return null;
+      const ext = path.extname(originalName || tempPath) || '';
+      const target = `${ticketNumber}${suffix}${ext}`;
+      const { error: moveError } = await supabase.storage.from(BUCKET).move(tempPath, target);
+      if (moveError) {
+        console.error('첨부 이동 실패:', moveError);
+        return tempPath; // 옮기기 실패해도 원래 경로로 연결은 유지
+      }
+      return target;
     }
+
+    const storedPath = await moveInto(filePath, fileName, '');
+    const storedApprovalPath = await moveInto(approvalPath, approvalName, '-approval');
 
     const payload = {
       ticket_number: ticketNumber,
@@ -136,7 +147,10 @@ module.exports = async (req, res) => {
       rcsm_approval: 'Not started',
       quarter: getKstQuarter(),
       file_name: fileName || null,
-      file_path: storedPath
+      file_path: storedPath,
+      approval_file_name: approvalName || null,
+      approval_file_path: storedApprovalPath,
+      approval_uploaded_at: storedApprovalPath ? new Date().toISOString() : null
     };
 
     // Total Repair Cost (After) = Before − Retailer − JLRK,

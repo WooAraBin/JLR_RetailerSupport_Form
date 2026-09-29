@@ -20,6 +20,7 @@ function publicView(row) {
     jlrk_support_cost: row.jlrk_support_cost,
     rcsm_approval: row.rcsm_approval,
     file_name: row.file_name,
+    approval_file_name: row.approval_file_name,
     invoice_file_name: row.invoice_file_name,
     estimate_check: row.estimate_check,
     request_date: row.request_date,
