@@ -50,8 +50,13 @@ module.exports = async (req, res) => {
     const { row, error } = await findTicket(ticketNumber, authorName);
     if (error) return res.status(404).json({ error });
 
-    if (row.rcsm_approval === 'Paid') {
-      return res.status(403).json({ error: '지급이 끝난 건이라 수정할 수 없습니다. JLRK 담당자에게 연락해주세요.' });
+    // 검토중부터는 리테일러가 고칠 수 없다(보스 확정 2026-09-29).
+    // 검토가 시작된 뒤 값이 바뀌면 검토한 의미가 없어진다. 고칠 게 있으면 JLRK가 첨부를 지워
+    // 단계를 내려주면 다시 열린다.
+    const LOCKED = ['In review', 'Done', 'Paid', 'Cancelled'];
+    if (LOCKED.includes(row.rcsm_approval)) {
+      const label = { 'In review': '검토가 시작된', Done: '검토가 끝난', Paid: '지급이 끝난', Cancelled: '취소된' }[row.rcsm_approval];
+      return res.status(403).json({ error: `${label} 건이라 수정할 수 없습니다. JLRK 담당자에게 연락해주세요.` });
     }
 
     // 취소 — 규칙에 어긋나 다시 접수해야 할 때 리테일러가 직접 누른다(JLRK도 관리자 화면에서 가능)
@@ -63,10 +68,6 @@ module.exports = async (req, res) => {
         .select('*');
       if (cancelError) throw cancelError;
       return res.status(200).json({ success: true, ticket: publicView(cancelled[0]) });
-    }
-
-    if (row.rcsm_approval === 'Cancelled') {
-      return res.status(403).json({ error: '취소된 건입니다. 새로 접수해주세요.' });
     }
 
     if (Number(jlrkSupportCost || 0) > Number(retailerSupportCost || 0)) {
@@ -134,10 +135,13 @@ module.exports = async (req, res) => {
       willHave('approval_file_path', patch.approval_file_path) &&
       willHave('file_path', patch.file_path) &&
       willHave('invoice_file_path', patch.invoice_file_path);
-    // 인보이스가 규칙에 어긋나면(보완 필요) 검토중으로 올리지 않는다 — 고쳐서 다시 올려야 한다
+    // 보완 필요가 하나도 없을 때만 검토중으로 올린다(보스 확정 2026-09-29).
+    // 판독 불가(One DMS 출력본이 아님)도 보완 필요로 본다.
     const invoiceCheck = patch.invoice_check || row.invoice_check;
-    const invoiceBlocks = invoiceCheck && invoiceCheck.status === 'needs_fix';
-    if (hasAll && !invoiceBlocks && ['Not started', 'In progress'].includes(patch.rcsm_approval || row.rcsm_approval)) {
+    const estimateCheck = patch.estimate_check || row.estimate_check;
+    const bad = (c) => !c || c.status === 'needs_fix' || c.status === 'unreadable';
+    const clean = hasAll && !bad(estimateCheck) && !bad(invoiceCheck);
+    if (clean && ['Not started', 'In progress'].includes(patch.rcsm_approval || row.rcsm_approval)) {
       patch.rcsm_approval = 'In review';
     }
 

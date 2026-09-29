@@ -139,7 +139,14 @@ function renderTicket(t) {
   current = t;
   SLOTS.forEach((s) => { pendingFiles[s.key] = null; });
   const st = statusOf(t.rcsm_approval);
-  const locked = t.rcsm_approval === 'Paid' || t.rcsm_approval === 'Cancelled';
+  // 검토중부터는 고칠 수 없다 — 고칠 게 있으면 JLRK가 단계를 내려준다
+  const LOCKED_LABEL = {
+    'In review': '검토가 시작된 건이라 수정할 수 없습니다. 고칠 내용이 있으면 JLRK 담당자에게 연락해주세요.',
+    Done: '검토가 끝난 건이라 수정할 수 없습니다. 고칠 내용이 있으면 JLRK 담당자에게 연락해주세요.',
+    Paid: '지급이 끝난 건이라 수정할 수 없습니다. 고칠 내용이 있으면 JLRK 담당자에게 연락해주세요.',
+    Cancelled: '취소된 건입니다. 새로 접수해주세요.',
+  };
+  const locked = !!LOCKED_LABEL[t.rcsm_approval];
 
   lkResult.innerHTML = `
     <div class="ticket-head">
@@ -148,7 +155,7 @@ function renderTicket(t) {
       <span class="ticket-meta">${t.workshop} · ${t.vehicle_number} · 작성자 ${t.author_name || '-'} · 접수 ${String(t.request_date || '').slice(0, 10)}</span>
     </div>
 
-    ${locked ? `<div class="locked-note">${t.rcsm_approval === 'Cancelled' ? '취소된 건입니다. 새로 접수해주세요.' : '지급이 끝난 건이라 수정할 수 없습니다. 고칠 내용이 있으면 JLRK 담당자에게 연락해주세요.'}</div>` : ''}
+    ${locked ? `<div class="locked-note">${LOCKED_LABEL[t.rcsm_approval]}</div>` : ''}
     ${checkBox(t)}
     ${invoiceBox(t)}
 
