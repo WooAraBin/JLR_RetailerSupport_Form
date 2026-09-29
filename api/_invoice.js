@@ -18,6 +18,14 @@ function toNum(v) {
 /** PDF에서 합계 줄을 읽어 { 부품, 공임, 할인, 합계, 청구금액, ... } 을 돌려준다 */
 async function readInvoicePdf(buffer) {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  // Vercel 서버리스에는 필요한 파일만 올라간다. 워커 경로를 문자열로 박아둬야 같이 올라가고,
+  // 안 그러면 배포본에서만 "Cannot find module ... pdf.worker.mjs" 로 판독이 통째로 실패한다
+  // (로컬에서는 멀쩡해서 더미 5건을 돌려보고서야 드러났다 — 2026-09-29).
+  try {
+    pdfjs.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+  } catch {
+    /* 경로를 못 찾으면 pdfjs 기본값으로 둔다 */
+  }
   const doc = await pdfjs.getDocument({ data: new Uint8Array(buffer), useSystemFonts: true }).promise;
   const found = {};
 

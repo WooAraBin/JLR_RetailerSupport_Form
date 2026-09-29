@@ -69,6 +69,10 @@ module.exports = async (req, res) => {
       return res.status(403).json({ error: '취소된 건입니다. 새로 접수해주세요.' });
     }
 
+    if (Number(jlrkSupportCost || 0) > Number(retailerSupportCost || 0)) {
+      return res.status(400).json({ error: '보완 필요: JLRK 지원금은 리테일러 지원금보다 클 수 없습니다.' });
+    }
+
     const patch = {
       comment: comment && comment.trim() !== '' ? comment.trim() : null,
       total_repair_cost_before: toNumber(totalRepairCostBefore),

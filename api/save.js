@@ -112,6 +112,9 @@ module.exports = async (req, res) => {
   if (isRepairSupport && !filePath) {
     return res.status(400).json({ error: '견적서를 첨부해주세요.' });
   }
+  if (isRepairSupport && Number(jlrkSupportCost || 0) > Number(retailerSupportCost || 0)) {
+    return res.status(400).json({ error: '보완 필요: JLRK 지원금은 리테일러 지원금보다 클 수 없습니다.' });
+  }
 
   try {
     const ticketNumber = await generateTicketNumber(workshop, repairType);
