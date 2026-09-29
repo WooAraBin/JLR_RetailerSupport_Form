@@ -90,7 +90,8 @@ function openProgram(key) {
   // 사고차 지원금은 이번 개편 대상이 아니다 — 개편 전 모습(1열·옛 라벨·옛 칸 순서) 그대로 둔다
   formWrap.classList.toggle('one-col', !isRepair);
   document.getElementById('fileLabel').firstChild.nodeValue = isRepair ? '② 1차 견적서' : 'Files & Media';
-  commentInput.placeholder = isRepair ? '예: 우측 프론트 범퍼·펜더 교환, 고객 자비 부담 조정 요청' : '메모 / 차량 정보 등';
+  // Comment 는 이메일 승인에 쓴 내용을 다시 적는 칸이 아니다 — 특이사항만(09-29 보스 지시)
+  commentInput.placeholder = isRepair ? '예: 고객 요청으로 10월 초 작업 예정 (특이사항만)' : '메모 / 차량 정보 등';
   // 개편 전 순서는 차량번호 → Comment → 수리 예정일이었다
   const commentField = commentInput.closest('.field');
   const dateField = plannedStartDateInput.closest('.field');
