@@ -31,6 +31,13 @@ function statusOf(key) {
 function setLkStatus(message, type = '') {
   lkStatus.textContent = message;
   lkStatus.className = 'status ' + type;
+  // 변경 접수 상자가 열려 있으면 그 안에도 같이 띄운다 — 위쪽 상태줄은 화면 밖이라 안 보인다
+  const am = document.getElementById('amStatus');
+  if (am) {
+    am.textContent = message;
+    am.className = 'status ' + type;
+    if (type === 'error') am.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
 }
 
 function won(v) {
@@ -391,6 +398,7 @@ function openAmend(t) {
         </div>
       </div>
       <button id="amSubmitBtn" class="save-btn">변경 접수하기</button>
+      <div id="amStatus" class="status"></div>
     </div>`;
 
   box.querySelectorAll('.money').forEach(bindMoneyInput);
@@ -411,9 +419,13 @@ function openAmend(t) {
 async function submitAmend() {
   if (!current) return;
   const reason = document.getElementById('amReason').value.trim();
-  if (!reason) return setLkStatus('변경 사유를 입력해주세요.', 'error');
-  if (!amendFiles.approval) return setLkStatus('변경된 금액의 이메일 승인본을 첨부해주세요.', 'error');
-  if (!amendFiles.estimate) return setLkStatus('변경된 견적서를 첨부해주세요.', 'error');
+  const missing = [];
+  if (!reason) missing.push('변경 사유');
+  if (!amendFiles.approval) missing.push('변경된 이메일 승인본');
+  if (!amendFiles.estimate) missing.push('변경된 견적서');
+  if (missing.length) {
+    return setLkStatus(`${missing.join(' · ')}을(를) 채워주셔야 변경 접수됩니다.`, 'error');
+  }
 
   const btn = document.getElementById('amSubmitBtn');
   btn.disabled = true;
