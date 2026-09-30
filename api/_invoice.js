@@ -64,7 +64,7 @@ async function readInvoicePdf(buffer) {
 
 /**
  * 접수 때 적은 금액과 인보이스를 맞춰본다.
- *  ① 총 할인 ≥ 리테일러 지원 + JLRK 지원
+ *  ① 총 할인 = 리테일러 지원 + JLRK 지원 (2026-09-30 보스 확정 — 같아야 서류가 정확히 들어간 것이 확인된다)
  *  ② 청구금액 ≤ 견적서 금액 − 리테일러 지원 − JLRK 지원
  *  ③ 할인 전 부품 + 공임이 견적서와 같아야 한다(작업 범위가 그대로여야 하므로)
  * 어긋나면 「보완 필요」로 알린다 — 용어는 이것 하나로 통일한다(보스 지시).
@@ -96,8 +96,15 @@ async function checkInvoice(buffer, fileName, amounts) {
   const invBeforeDiscount = (read['부품'] || 0) + (read['공임'] || 0);
 
   const issues = [];
-  if (support > 0 && invDiscount < support) {
-    issues.push(`인보이스 할인 ${invDiscount.toLocaleString()}원이 지원금 합계 ${support.toLocaleString()}원보다 적습니다`);
+  // 할인은 지원금 합계와 같아야 한다. 원 단위 반올림만 100원까지 봐준다.
+  if (support > 0 && Math.abs(invDiscount - support) > 100) {
+    issues.push(
+      `인보이스 할인 ${invDiscount.toLocaleString()}원이 지원금 합계 ${support.toLocaleString()}원과 다릅니다` +
+        ` (리테일러 ${retailer.toLocaleString()}원 + JLRK ${jlrk.toLocaleString()}원)`
+    );
+  }
+  if (retailer > 0 && jlrk > retailer) {
+    issues.push(`JLRK 지원금 ${jlrk.toLocaleString()}원이 리테일러 지원금 ${retailer.toLocaleString()}원보다 큽니다`);
   }
   const expectedMax = quote - support;
   if (quote > 0 && invBilled > expectedMax) {
