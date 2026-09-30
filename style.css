@@ -665,3 +665,33 @@ body {
 /* 보완 필요·확인 결과 박스 안에서도 줄이 붙지 않게 */
 .check-ok, .check-warn, .check-none, .locked-note { line-height: 1.75; }
 .check-sub { font-size: 11px; color: var(--ink3); }
+
+/* ===== 진행 단계 띠(티켓 조회) — 2026-09-30 ===== */
+.flow {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.flow-step { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; opacity: 0.45; }
+.flow-step b { font-size: 12px; color: var(--ink); }
+.flow-step span { font-size: 10.5px; color: var(--ink3); }
+.flow-step.done { opacity: 1; }
+.flow-step.done b { color: var(--up); }
+.flow-step.on { opacity: 1; }
+.flow-step.on b { color: var(--p1); }
+.flow-step.locked b::after { content: ' 🔒'; font-size: 10px; }
+.flow-arrow { color: #c3c9d4; font-size: 15px; align-self: center; }
+.flow.cancelled { display: block; color: #A32B43; background: #FFF7F8; border-color: #F7C9D2; font-size: 12.5px; }
+.flow-note { font-size: 11.5px; color: var(--ink2); line-height: 1.6; padding: 0 4px 6px; }
+
+@media (max-width: 640px) {
+  .flow { flex-wrap: wrap; }
+  .flow-arrow { display: none; }
+  .flow-step { flex: 1 1 45%; }
+}

@@ -135,6 +135,44 @@ function supportBox(t) {
   </div>`;
 }
 
+// 진행 단계 띠 — 지금 어디인지, 다음에 뭘 해야 하는지, 어디부터 잠기는지 한 화면에 보여준다.
+const FLOW = [
+  { key: 'Not started', label: '접수 완료', sub: '이메일 승인본 · 견적서', dateField: 'request_date' },
+  { key: 'In progress', label: '인보이스 마감', sub: '최종 마감 인보이스', dateField: 'invoice_uploaded_at' },
+  { key: 'In review', label: '검토중', sub: '보완 사항 없음', locked: true },
+  { key: 'Done', label: '검토 완료', sub: 'JLRK 검토', locked: true },
+  { key: 'Paid', label: '지급 완료', sub: '비용 지급', locked: true },
+];
+
+function nextAction(t) {
+  if (t.rcsm_approval === 'Cancelled') return '취소된 건입니다. 새로 접수해주세요.';
+  if (t.rcsm_approval === 'Paid') return '지급이 완료된 건입니다.';
+  if (t.rcsm_approval === 'Done') return 'JLRK 검토가 끝났습니다. 지급을 기다리는 중입니다.';
+  if (t.rcsm_approval === 'In review') return 'JLRK 검토를 기다리는 중입니다. 이 단계부터는 수정할 수 없습니다.';
+  const missing = SLOTS.filter((s2) => !t[s2.nameField]);
+  if (missing.length) return `다음: ${missing.map((m) => m.label.replace(/^[①②③]\s*/, '')).join(' · ')}를 첨부해주세요.`;
+  const bad = [t.estimate_check, t.invoice_check].filter((c) => c && (c.status === 'needs_fix' || c.status === 'unreadable'));
+  if (bad.length) return '다음: 위에 표시된 보완 사항을 고쳐주세요. 보완이 끝나면 검토중으로 넘어갑니다.';
+  return '다음: 저장하시면 검토중으로 넘어갑니다.';
+}
+
+function flowBar(t) {
+  if (t.rcsm_approval === 'Cancelled') {
+    return `<div class="flow cancelled"><b>취소된 건입니다.</b> 새로 접수해주세요.</div>`;
+  }
+  const idx = FLOW.findIndex((f) => f.key === t.rcsm_approval);
+  const cells = FLOW.map((f, i) => {
+    const state = i < idx ? 'done' : i === idx ? 'on' : '';
+    const d = f.dateField && t[f.dateField] ? String(t[f.dateField]).slice(0, 10) : '';
+    return `<div class="flow-step ${state}${f.locked ? ' locked' : ''}">
+      <b>${i < idx ? '✓ ' : ''}${f.label}</b>
+      <span>${d || f.sub}</span>
+    </div>`;
+  }).join('<div class="flow-arrow">›</div>');
+  return `<div class="flow">${cells}</div>
+    <p class="flow-note">🔒 표시가 있는 <b>검토중</b>부터는 수정할 수 없습니다. ${nextAction(t)}</p>`;
+}
+
 function renderTicket(t) {
   current = t;
   SLOTS.forEach((s) => { pendingFiles[s.key] = null; });
@@ -155,6 +193,7 @@ function renderTicket(t) {
       <span class="ticket-meta">${t.workshop} · ${t.vehicle_number} · 작성자 ${t.author_name || '-'} · 접수 ${String(t.request_date || '').slice(0, 10)}</span>
     </div>
 
+    ${flowBar(t)}
     ${locked ? `<div class="locked-note">${LOCKED_LABEL[t.rcsm_approval]}</div>` : ''}
     ${checkBox(t)}
     ${invoiceBox(t)}
