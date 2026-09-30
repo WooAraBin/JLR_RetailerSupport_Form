@@ -456,7 +456,18 @@ async function submitAmend() {
     amendFiles.approval = null;
     amendFiles.estimate = null;
     renderTicket(data.ticket);
-    setLkStatus('✅ 변경 접수했습니다. 접수 완료 단계에서 금액을 다시 확인합니다.', 'success');
+    // 화면이 다시 그려지므로 결과를 티켓 위에 큰 안내로 남긴다 — 눌렀는데 아무 표시가 없으면 당황한다
+    const done = document.createElement('div');
+    done.className = 'check-ok';
+    done.innerHTML = `<b>✅ 변경 접수가 완료되었습니다.</b><br>
+      · 변경된 금액 — 견적서 금액 <b>${Number(data.ticket.total_repair_cost_before || 0).toLocaleString()}원</b> ·
+      부품 ${Number(data.ticket.total_parts_cost || 0).toLocaleString()}원 ·
+      리테일러 ${Number(data.ticket.retailer_support_cost || 0).toLocaleString()}원 ·
+      JLRK ${Number(data.ticket.jlrk_support_cost || 0).toLocaleString()}원<br>
+      · 새 이메일 승인본과 견적서가 등록되었고, <b>접수 완료 단계</b>에서 금액을 다시 확인합니다. (변경 ${data.ticket.change_count || 1}회)`;
+    lkResult.prepend(done);
+    done.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setLkStatus('✅ 변경 접수가 완료되었습니다.', 'success');
   } catch (err) {
     setLkStatus('❌ ' + (err.message || '네트워크 오류'), 'error');
   } finally {
