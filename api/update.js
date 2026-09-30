@@ -74,12 +74,10 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: '보완 필요: JLRK 지원금은 리테일러 지원금보다 클 수 없습니다.' });
     }
 
+    // 금액은 이 경로로 바꾸지 않는다 — 바꾸려면 「변경 접수」(api/amend)로만.
+    // 승인본·견적서를 새로 받지 않고 금액만 고치는 길을 막기 위함이다(2026-09-30).
     const patch = {
       comment: comment && comment.trim() !== '' ? comment.trim() : null,
-      total_repair_cost_before: toNumber(totalRepairCostBefore),
-      total_parts_cost: toNumber(totalPartsCost),
-      retailer_support_cost: toNumber(retailerSupportCost),
-      jlrk_support_cost: toNumber(jlrkSupportCost),
       updated_at: new Date().toISOString(),
     };
 
@@ -117,10 +115,10 @@ module.exports = async (req, res) => {
         const { data: file } = await supabase.storage.from(BUCKET).download(patch.invoice_file_path);
         if (file) {
           patch.invoice_check = await checkInvoice(Buffer.from(await file.arrayBuffer()), patch.invoice_file_name, {
-            total_repair_cost_before: patch.total_repair_cost_before,
-            total_parts_cost: patch.total_parts_cost,
-            retailer_support_cost: patch.retailer_support_cost,
-            jlrk_support_cost: patch.jlrk_support_cost,
+            total_repair_cost_before: row.total_repair_cost_before,
+            total_parts_cost: row.total_parts_cost,
+            retailer_support_cost: row.retailer_support_cost,
+            jlrk_support_cost: row.jlrk_support_cost,
           });
         }
       } catch (err) {
@@ -146,11 +144,7 @@ module.exports = async (req, res) => {
     }
 
     // 수치가 바뀌었으면 견적서와 다시 대조한다
-    const amountsChanged =
-      patch.total_repair_cost_before !== row.total_repair_cost_before ||
-      patch.total_parts_cost !== row.total_parts_cost ||
-      patch.retailer_support_cost !== row.retailer_support_cost ||
-      patch.jlrk_support_cost !== row.jlrk_support_cost;
+    const amountsChanged = false; // 금액은 변경 접수에서만 바뀐다
 
     const estimateForCheck = patch.file_path || row.file_path;
     if ((amountsChanged || estimatePath) && estimateForCheck) {
@@ -159,10 +153,10 @@ module.exports = async (req, res) => {
         if (file) {
           const buffer = Buffer.from(await file.arrayBuffer());
           patch.estimate_check = await checkEstimate(buffer, patch.file_name || row.file_name || estimateForCheck, {
-            total_repair_cost_before: patch.total_repair_cost_before,
-            total_parts_cost: patch.total_parts_cost,
-            retailer_support_cost: patch.retailer_support_cost,
-            jlrk_support_cost: patch.jlrk_support_cost,
+            total_repair_cost_before: row.total_repair_cost_before,
+            total_parts_cost: row.total_parts_cost,
+            retailer_support_cost: row.retailer_support_cost,
+            jlrk_support_cost: row.jlrk_support_cost,
           });
         }
       } catch (err) {
