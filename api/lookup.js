@@ -25,6 +25,7 @@ function publicView(row) {
     estimate_check: row.estimate_check,
     invoice_check: row.invoice_check,
     invoice_uploaded_at: row.invoice_uploaded_at,
+    reviewed_at: row.reviewed_at,
     request_date: row.request_date,
   };
 }

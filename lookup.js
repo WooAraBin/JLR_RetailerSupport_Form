@@ -140,7 +140,7 @@ const FLOW = [
   { key: 'Not started', label: '접수 완료', sub: '이메일 승인본 · 견적서', dateField: 'request_date' },
   { key: 'In progress', label: '인보이스 마감', sub: '최종 마감 인보이스', dateField: 'invoice_uploaded_at' },
   { key: 'In review', label: '검토중', sub: '보완 사항 없음', locked: true },
-  { key: 'Done', label: '검토 완료', sub: 'JLRK 검토', locked: true },
+  { key: 'Done', label: '검토 완료', sub: 'JLRK 검토', dateField: 'reviewed_at', locked: true },
   { key: 'Paid', label: '지급 완료', sub: '비용 지급', locked: true },
 ];
 
