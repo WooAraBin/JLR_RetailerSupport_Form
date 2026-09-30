@@ -605,17 +605,18 @@ body {
 .slot-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   flex-wrap: wrap;
-  padding: 9px 0;
+  padding: 16px 0;
   border-bottom: 1px dashed #e7eaef;
 }
+.slot-row:first-of-type { padding-top: 6px; }
 .slot-row:last-child { border-bottom: 0; }
 
-.slot-name { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+.slot-name { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 5px; }
 .slot-name b { font-size: 12.5px; color: var(--ink); }
-.slot-have { font-size: 11.5px; color: var(--up); }
-.slot-none { font-size: 11.5px; color: var(--down); }
+.slot-have { font-size: 11.5px; color: var(--up); line-height: 1.5; }
+.slot-none { font-size: 11.5px; color: var(--down); line-height: 1.5; }
 
 .support-box {
   display: flex;
@@ -645,7 +646,7 @@ body {
 .steps-note { line-height: 1.75; padding: 2px 4px 4px; }
 .filelist { gap: 6px; line-height: 1.6; }
 
-.slot-hint { font-size: 11px; color: var(--ink3); margin-left: 6px; font-weight: 500; }
+.slot-hint { display: block; font-size: 11px; color: var(--ink3); margin: 2px 0 0; font-weight: 500; }
 
 .cancel-btn {
   width: 100%;
