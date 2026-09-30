@@ -26,6 +26,7 @@ function publicView(row) {
     invoice_check: row.invoice_check,
     invoice_uploaded_at: row.invoice_uploaded_at,
     reviewed_at: row.reviewed_at,
+    change_count: row.change_count,
     request_date: row.request_date,
   };
 }

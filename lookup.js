@@ -190,7 +190,7 @@ function renderTicket(t) {
     <div class="ticket-head">
       <span class="ticket-no">${t.ticket_number}</span>
       <span class="badge ${st.cls}">${st.label}</span>
-      <span class="ticket-meta">${t.workshop} · ${t.vehicle_number} · 작성자 ${t.author_name || '-'} · 접수 ${String(t.request_date || '').slice(0, 10)}</span>
+      <span class="ticket-meta">${t.workshop} · ${t.vehicle_number} · 작성자 ${t.author_name || '-'} · 접수 ${String(t.request_date || '').slice(0, 10)}${t.change_count ? ` · <b>변경 ${t.change_count}회</b>` : ''}</span>
     </div>
 
     ${flowBar(t)}
@@ -222,21 +222,23 @@ function renderTicket(t) {
     <div class="grid2">
       <div class="field">
         <label class="label">견적서 금액<span class="label-sub">부가세 제외</span></label>
-        <input type="text" id="lkBefore" class="date-input money" inputmode="numeric" value="${t.total_repair_cost_before == null ? '' : Number(t.total_repair_cost_before).toLocaleString()}" ${locked ? 'disabled' : ''}>
+        <input type="text" id="lkBefore" class="date-input money" inputmode="numeric" value="${t.total_repair_cost_before == null ? '' : Number(t.total_repair_cost_before).toLocaleString()}" disabled>
       </div>
       <div class="field">
         <label class="label">부품 금액<span class="label-sub">부가세 제외</span></label>
-        <input type="text" id="lkParts" class="date-input money" inputmode="numeric" value="${t.total_parts_cost == null ? '' : Number(t.total_parts_cost).toLocaleString()}" ${locked ? 'disabled' : ''}>
+        <input type="text" id="lkParts" class="date-input money" inputmode="numeric" value="${t.total_parts_cost == null ? '' : Number(t.total_parts_cost).toLocaleString()}" disabled>
       </div>
       <div class="field">
         <label class="label">리테일러 지원금<span class="label-sub">부가세 제외</span></label>
-        <input type="text" id="lkRetailer" class="date-input money" inputmode="numeric" value="${t.retailer_support_cost == null ? '' : Number(t.retailer_support_cost).toLocaleString()}" ${locked ? 'disabled' : ''}>
+        <input type="text" id="lkRetailer" class="date-input money" inputmode="numeric" value="${t.retailer_support_cost == null ? '' : Number(t.retailer_support_cost).toLocaleString()}" disabled>
       </div>
       <div class="field">
         <label class="label">JLRK 지원금<span class="label-sub">리테일러 지원금보다 클 수 없습니다</span></label>
-        <input type="text" id="lkJlrk" class="date-input money" inputmode="numeric" value="${t.jlrk_support_cost == null ? '' : Number(t.jlrk_support_cost).toLocaleString()}" ${locked ? 'disabled' : ''}>
+        <input type="text" id="lkJlrk" class="date-input money" inputmode="numeric" value="${t.jlrk_support_cost == null ? '' : Number(t.jlrk_support_cost).toLocaleString()}" disabled>
       </div>
     </div>
+
+    <p class="flow-note">금액은 접수 후 수정할 수 없습니다. 금액이 달라졌다면 아래 <b>[변경 접수]</b>를 이용해주세요 — 변경된 금액의 <b>이메일 승인본과 견적서</b>를 새로 첨부하셔야 합니다.</p>
 
     <div class="field">
       <label class="label">Comment<span class="label-sub">선택</span></label>
@@ -245,6 +247,8 @@ function renderTicket(t) {
 
     ${locked ? '' : `
       <button id="lkSaveBtn" class="save-btn">저장</button>
+      <button id="lkAmendBtn" class="amend-btn">💱 변경 접수 — 금액이 달라졌습니다</button>
+      <div id="lkAmendBox" style="display:none;"></div>
       <button id="lkCancelBtn" class="cancel-btn">이 건 취소하고 새로 접수하기</button>`}
   `;
   lkResult.style.display = '';
@@ -265,6 +269,7 @@ function renderTicket(t) {
   lkResult.querySelectorAll('.money').forEach(bindMoneyInput); // app.js 의 콤마 입력을 그대로 쓴다
   document.getElementById('lkSaveBtn').addEventListener('click', saveTicket);
   document.getElementById('lkCancelBtn').addEventListener('click', cancelTicket);
+  document.getElementById('lkAmendBtn').addEventListener('click', () => openAmend(t));
 }
 
 async function searchTicket() {
@@ -309,12 +314,6 @@ async function saveTicket() {
       uploaded[slot.key] = up;
     }
 
-    const jlrkV = Number(onlyDigits(document.getElementById('lkJlrk').value) || 0);
-    const retV = Number(onlyDigits(document.getElementById('lkRetailer').value) || 0);
-    if (jlrkV > retV) {
-      return setLkStatus('보완 필요: JLRK 지원금은 리테일러 지원금보다 클 수 없습니다.', 'error');
-    }
-
     setLkStatus('저장 중...');
     const res = await fetch('/api/update', {
       method: 'POST',
@@ -323,10 +322,6 @@ async function saveTicket() {
         ticketNumber: current.ticket_number,
         authorName: lkAuthor.value.trim(),
         comment: document.getElementById('lkComment').value.trim(),
-        totalRepairCostBefore: onlyDigits(document.getElementById('lkBefore').value),
-        totalPartsCost: onlyDigits(document.getElementById('lkParts').value),
-        retailerSupportCost: onlyDigits(document.getElementById('lkRetailer').value),
-        jlrkSupportCost: onlyDigits(document.getElementById('lkJlrk').value),
         approvalPath: uploaded.approval?.filePath ?? null,
         approvalName: uploaded.approval?.fileName ?? null,
         estimatePath: uploaded.estimate?.filePath ?? null,
@@ -346,6 +341,110 @@ async function saveTicket() {
         : '✅ 저장했습니다.',
       'success'
     );
+  } catch (err) {
+    setLkStatus('❌ ' + (err.message || '네트워크 오류'), 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 변경 접수 — 금액이 달라졌을 때만. 사유·새 승인본·새 견적서를 모두 받아야 저장된다.
+const amendFiles = { approval: null, estimate: null };
+
+function openAmend(t) {
+  const box = document.getElementById('lkAmendBox');
+  document.getElementById('lkAmendBtn').style.display = 'none';
+  box.style.display = '';
+  box.innerHTML = `
+    <div class="amend-box">
+      <b>변경 접수</b>
+      <p class="flow-note" style="padding:4px 0 8px">
+        금액이 바뀌면 이메일 승인도 새로 받으셔야 합니다. 아래를 모두 채워주셔야 접수됩니다.<br>
+        저장하면 <b>접수 완료 단계로 되돌아가</b> 금액을 다시 확인합니다.
+      </p>
+      <div class="grid2">
+        <div class="field"><label class="label">견적서 금액<span class="label-sub">부가세 제외</span></label>
+          <input type="text" id="amBefore" class="date-input money" inputmode="numeric" value="${t.total_repair_cost_before == null ? '' : Number(t.total_repair_cost_before).toLocaleString()}"></div>
+        <div class="field"><label class="label">부품 금액<span class="label-sub">부가세 제외</span></label>
+          <input type="text" id="amParts" class="date-input money" inputmode="numeric" value="${t.total_parts_cost == null ? '' : Number(t.total_parts_cost).toLocaleString()}"></div>
+        <div class="field"><label class="label">리테일러 지원금<span class="label-sub">부가세 제외</span></label>
+          <input type="text" id="amRetailer" class="date-input money" inputmode="numeric" value="${t.retailer_support_cost == null ? '' : Number(t.retailer_support_cost).toLocaleString()}"></div>
+        <div class="field"><label class="label">JLRK 지원금<span class="label-sub">리테일러 지원금보다 클 수 없습니다</span></label>
+          <input type="text" id="amJlrk" class="date-input money" inputmode="numeric" value="${t.jlrk_support_cost == null ? '' : Number(t.jlrk_support_cost).toLocaleString()}"></div>
+      </div>
+      <div class="field"><label class="label">변경 사유<span class="label-sub">필수</span></label>
+        <input type="text" id="amReason" class="date-input" placeholder="예: 작업 범위 추가로 수리비 증액, 지원금 재협의"></div>
+      <div class="field">
+        <label class="label">새 이메일 승인본 캡처<span class="label-sub">필수 · 변경된 금액 기준</span></label>
+        <div class="file-wrap">
+          <input type="file" id="amApprovalInput" class="file-input-hidden" accept="image/*,.pdf,.xlsx,.xls,.doc,.docx">
+          <button type="button" class="file-btn" id="amApprovalBtn">첨부</button>
+          <span id="amApprovalName" class="file-name">선택된 파일 없음</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">새 견적서<span class="label-sub">필수 · One DMS 출력본</span></label>
+        <div class="file-wrap">
+          <input type="file" id="amEstimateInput" class="file-input-hidden" accept=".pdf,.xlsx,.xls">
+          <button type="button" class="file-btn" id="amEstimateBtn">첨부</button>
+          <span id="amEstimateName" class="file-name">선택된 파일 없음</span>
+        </div>
+      </div>
+      <button id="amSubmitBtn" class="save-btn">변경 접수하기</button>
+    </div>`;
+
+  box.querySelectorAll('.money').forEach(bindMoneyInput);
+  for (const [key, btn, input, nameEl] of [
+    ['approval', 'amApprovalBtn', 'amApprovalInput', 'amApprovalName'],
+    ['estimate', 'amEstimateBtn', 'amEstimateInput', 'amEstimateName'],
+  ]) {
+    const i = document.getElementById(input);
+    document.getElementById(btn).addEventListener('click', () => i.click());
+    i.addEventListener('change', () => {
+      amendFiles[key] = i.files[0] || null;
+      document.getElementById(nameEl).textContent = amendFiles[key] ? amendFiles[key].name : '선택된 파일 없음';
+    });
+  }
+  document.getElementById('amSubmitBtn').addEventListener('click', submitAmend);
+}
+
+async function submitAmend() {
+  if (!current) return;
+  const reason = document.getElementById('amReason').value.trim();
+  if (!reason) return setLkStatus('변경 사유를 입력해주세요.', 'error');
+  if (!amendFiles.approval) return setLkStatus('변경된 금액의 이메일 승인본을 첨부해주세요.', 'error');
+  if (!amendFiles.estimate) return setLkStatus('변경된 견적서를 첨부해주세요.', 'error');
+
+  const btn = document.getElementById('amSubmitBtn');
+  btn.disabled = true;
+  try {
+    setLkStatus('첨부 올리는 중...');
+    const ap = await uploadFile(amendFiles.approval);
+    const es = await uploadFile(amendFiles.estimate);
+    setLkStatus('변경 접수 중...');
+    const res = await fetch('/api/amend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticketNumber: current.ticket_number,
+        authorName: lkAuthor.value.trim(),
+        reason,
+        totalRepairCostBefore: onlyDigits(document.getElementById('amBefore').value),
+        totalPartsCost: onlyDigits(document.getElementById('amParts').value),
+        retailerSupportCost: onlyDigits(document.getElementById('amRetailer').value),
+        jlrkSupportCost: onlyDigits(document.getElementById('amJlrk').value),
+        approvalPath: ap.filePath,
+        approvalName: ap.fileName,
+        estimatePath: es.filePath,
+        estimateName: es.fileName,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) return setLkStatus('❌ ' + (data.error || '변경 접수 실패'), 'error');
+    amendFiles.approval = null;
+    amendFiles.estimate = null;
+    renderTicket(data.ticket);
+    setLkStatus('✅ 변경 접수했습니다. 접수 완료 단계에서 금액을 다시 확인합니다.', 'success');
   } catch (err) {
     setLkStatus('❌ ' + (err.message || '네트워크 오류'), 'error');
   } finally {
