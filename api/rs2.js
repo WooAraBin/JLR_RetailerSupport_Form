@@ -184,6 +184,7 @@ async function close(body, res) {
   const cj = num(body.closeJlrk);
   const cr = num(body.closeRetailer);
   if (customer == null || cj == null || cr == null) return res.status(400).json({ error: '고객 청구액·JLRK 지원금·리테일러 부담을 모두 입력해 주세요.' });
+  if (!body.invoicePath && !row.invoice_file_path) return res.status(400).json({ error: '최종 인보이스 PDF를 첨부해 주세요. 자료 검토용으로 제출이 필요합니다.' });
   const patch = {
     close_customer: customer,
     close_jlrk: cj,

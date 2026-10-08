@@ -36,6 +36,18 @@
     .grid4 { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
     .files2 { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .save-btn { max-width: 360px; }
+    /* 왼쪽 메뉴 + 오른쪽 화면(10-08 보스 — 사고수리·PW FC까지 담는 포털) */
+    .portal { display:grid; grid-template-columns: 250px minmax(0,1fr); gap: 20px; align-items:start; }
+    .side { position: sticky; top: 20px; background:#fff; border:1.5px solid #e2e8f0; border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:4px; }
+    .side-group { font-size:12px; font-weight:800; color:#0f172a; padding:10px 8px 4px; }
+    .side-group small { display:block; font-weight:600; color:#94a3b8; font-size:11px; }
+    .side-item { text-align:left; padding:9px 12px; border-radius:10px; font-size:13.5px; font-weight:600; color:#475467; background:none; border:0; cursor:pointer; }
+    .side-item:hover { background:#f1f5f9; }
+    .side-item.on { background:#0f172a; color:#fff; }
+    .side-item.soon { color:#94a3b8; }
+    .side-item.soon::after { content:' · 준비 중'; font-size:11px; font-weight:600; }
+    .main { display:flex; flex-direction:column; gap:14px; min-width:0; }
+    .pane-title { font-size:20px; font-weight:800; color:#0f172a; margin: 2px 0 0; }
     .tabs { max-width: 720px; }
   </style>
 </head>
@@ -48,7 +60,20 @@
       </div>
     </header>
 
-    <div class="steps">
+    <div class="portal">
+    <nav class="side">
+      <div class="side-group">🔧 수리비 지원 프로그램<small>Repair Support</small></div>
+      <button class="side-item on" data-pane="new">새로 접수</button>
+      <button class="side-item" data-pane="mine">내 티켓 조회 · 마감 보고</button>
+      <div class="side-group">🚗 사고수리 지원 프로그램<small>Accident Repair</small></div>
+      <button class="side-item soon" data-pane="accident">새로 접수</button>
+      <button class="side-item soon" data-pane="accident">내 티켓 조회</button>
+      <div class="side-group">📊 Parts Wholesale<small>예상마감치(FC) 입력 · 월 1회</small></div>
+      <button class="side-item" data-pane="fc">예상마감치 입력</button>
+    </nav>
+    <div class="main">
+    <h2 class="pane-title" id="paneTitle">수리비 지원 프로그램 · 새로 접수</h2>
+    <div class="steps" id="repairSteps">
       <div class="step"><b>1. 이메일 승인 요청</b><span>JLRK에 이메일로 승인 요청</span></div>
       <div class="step-arrow">›</div>
       <div class="step"><b>2. 접수 진행</b><span>RO 번호 · 견적서 · 승인 메일 첨부</span></div>
@@ -60,10 +85,6 @@
       <div class="step"><b>5. 지원금 지급</b><span>검토 후 지급</span></div>
     </div>
 
-    <div class="tabs">
-      <button class="tab on" data-tab="new">① 새로 접수</button>
-      <button class="tab" data-tab="mine">내 티켓 조회 · ② 마감 보고</button>
-    </div>
 
     <!-- ① 접수 -->
     <div class="form-wrap" id="newWrap">
@@ -165,7 +186,8 @@
         <div id="closeForm" class="hidden">
           <p class="steps-note">
             · <b>수리가 끝나고 인보이스를 마감한 뒤</b> 아래 세 금액을 적어 주세요. 모두 <b>부가세 제외</b>입니다.<br>
-            · JLRK가 One DMS 마감 자료(같은 지점·RO 번호)와 자동으로 맞춰 봅니다. 인보이스 PDF는 참고용(선택)입니다.
+            · JLRK가 One DMS 마감 자료(같은 지점·RO 번호)와 자동으로 맞춰 봅니다.<br>
+            · <b>최종 인보이스 PDF는 자료 검토용으로 제출이 필요합니다.</b>
           </p>
           <div class="grid4">
             <div class="field">
@@ -181,7 +203,7 @@
               <input id="closeRetailer" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
             </div>
             <div class="field">
-              <label class="label">최종 인보이스<span class="label-sub">선택 · PDF</span></label>
+              <label class="label">최종 인보이스<span class="req">*</span><span class="label-sub">자료 검토용 · PDF</span></label>
               <div class="file-wrap">
                 <input type="file" id="invoiceFile" class="file-input-hidden" accept=".pdf,image/*">
                 <button type="button" class="file-btn" data-pick="invoiceFile">파일 선택</button>
@@ -194,6 +216,31 @@
         </div>
       </div>
     </div>
+    <!-- 사고수리 — 같은 구조로 나중에 연결 -->
+    <div class="form-wrap hidden" id="accidentWrap">
+      <div class="box info"><b>사고수리 지원 프로그램은 준비 중입니다.</b><br>수리비 지원 프로그램과 같은 절차(이메일 승인 요청 → 접수 → 인보이스 마감 및 청구 → JLRK 검토 → 지원금 지급)로 열릴 예정입니다. 그 전까지는 기존 접수 방법을 이용해 주세요.</div>
+    </div>
+
+    <!-- Parts Wholesale 예상마감치(FC) — 지난 폼과 같은 칸. 저장 연결은 나중에 -->
+    <div class="form-wrap hidden" id="fcWrap">
+      <div class="box info">이번 달 마감 시점에 예상되는 금액을 지점별로 넣어 주세요. <b>(저장 연결 준비 중 — 지금은 입력 칸만 있습니다)</b></div>
+      <div class="grid2">
+        <div class="field">
+          <label class="label">지점</label>
+          <div class="select-wrap"><select id="fcWorkshop" class="select"><option value="">선택해 주세요</option></select></div>
+        </div>
+      </div>
+      <div class="grid4" style="grid-template-columns: repeat(5, minmax(0,1fr))">
+        <div class="field"><label class="label">이번달 예상 Parts Wholesale<span class="label-sub">원</span></label><input id="fcParts" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label class="label">이번달 예상 Warranty<span class="label-sub">원</span></label><input id="fcWarranty" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label class="label">재고 (Warehouse stock)<span class="label-sub">원</span></label><input id="fcStock" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label class="label">NCE 승인 대기 금액<span class="label-sub">원</span></label><input id="fcNce" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label class="label">DMS 추가로 청구할 금액<span class="label-sub">원</span></label><input id="fcDms" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off"></div>
+      </div>
+      <button class="save-btn" disabled style="opacity:.5">제출 (준비 중)</button>
+    </div>
+    </div><!-- /main -->
+    </div><!-- /portal -->
   </div>
   <script src="app.js"></script>
 </body>

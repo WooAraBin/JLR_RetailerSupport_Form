@@ -16,12 +16,20 @@ document.querySelectorAll('.money').forEach((el) => {
   });
 });
 
-// 탭
-document.querySelectorAll('.tab').forEach((b) =>
+// 왼쪽 메뉴 — 수리비 지원(새로 접수 / 내 티켓) · 사고수리(준비 중) · Parts Wholesale FC
+const PANES = {
+  new: { wrap: 'newWrap', title: '수리비 지원 프로그램 · 새로 접수', steps: true },
+  mine: { wrap: 'mineWrap', title: '수리비 지원 프로그램 · 내 티켓 조회 · 마감 보고', steps: true },
+  accident: { wrap: 'accidentWrap', title: '사고수리 지원 프로그램', steps: false },
+  fc: { wrap: 'fcWrap', title: 'Parts Wholesale 예상마감치(FC) 입력', steps: false },
+};
+document.querySelectorAll('.side-item').forEach((b) =>
   b.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === b));
-    $('newWrap').classList.toggle('hidden', b.dataset.tab !== 'new');
-    $('mineWrap').classList.toggle('hidden', b.dataset.tab !== 'mine');
+    const key = b.dataset.pane;
+    document.querySelectorAll('.side-item').forEach((x) => x.classList.toggle('on', x === b));
+    for (const [k, p] of Object.entries(PANES)) $(p.wrap).classList.toggle('hidden', k !== key);
+    $('paneTitle').textContent = PANES[key].title;
+    $('repairSteps').classList.toggle('hidden', !PANES[key].steps);
   }),
 );
 
@@ -81,7 +89,7 @@ function estimateHtml(er) {
   if (!er) return '';
   if (er.status === 'unreadable') return `<div class="box info"><b>견적서 자동 확인</b><br>${er.reason}</div>`;
   if (er.status === 'ok') return `<div class="box ok"><b>견적서 자동 확인 ✅</b><br>견적서의 부품 ${won(er.totals['부품'])} · 공임 ${won(er.totals['공임'])}과 적으신 금액이 같습니다.</div>`;
-  return `<div class="box warn"><b>견적서 자동 확인 — 보완 필요</b><br>${(er.issues || []).map((s) => '· ' + s).join('<br>')}<br><span style="color:#64748b">접수는 되었습니다. 금액을 잘못 적으셨다면 담당 RCSM에게 알려 주세요.</span></div>`;
+  return `<div class="box warn"><b>견적서 자동 확인 — 보완 필요</b><br>${(er.issues || []).map((s) => '· ' + s).join('<br>')}<br><b>위 보완 필요 항목이 수정되지 않으면 JLRK 검토 단계로 넘어가지 않습니다.</b> 금액을 잘못 적으셨다면 담당 RCSM에게 알려 주세요.</div>`;
 }
 
 // 지점 목록
@@ -90,9 +98,11 @@ function estimateHtml(er) {
     const res = await fetch('/api/options');
     const j = await res.json();
     for (const w of j.workshopOptions) {
-      const o = document.createElement('option');
-      o.value = w; o.textContent = w;
-      $('workshop').appendChild(o);
+      for (const sel of [$('workshop'), $('fcWorkshop')]) {
+        const o = document.createElement('option');
+        o.value = w; o.textContent = w;
+        sel.appendChild(o);
+      }
     }
   } catch { setStatus('saveStatus', '지점 목록을 불러오지 못했습니다. 새로고침해 주세요.', 'error'); }
 })();
@@ -179,6 +189,7 @@ $('closeBtn').addEventListener('click', async () => {
   if (!current) return;
   const v = { c: digits($('closeCustomer').value), j: digits($('closeJlrk').value), r: digits($('closeRetailer').value) };
   if (!v.c || !v.j || !v.r) return setStatus('closeStatus', '고객 청구액 · JLRK 지원금 · 리테일러 부담을 모두 입력해 주세요.', 'error');
+  if (!picked.invoiceFile && !current.invoice_file_path) return setStatus('closeStatus', '최종 인보이스 PDF를 첨부해 주세요. 자료 검토용으로 제출이 필요합니다.', 'error');
   $('closeBtn').disabled = true;
   try {
     let inv = null;
