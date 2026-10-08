@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="JLRK 수리비 지원">
+  <title>JLRK 수리비 지원 프로그램</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    /* 신규 폼에서만 쓰는 몇 가지(공용 style.css는 손대지 않는다) */
+    .tabs { display:flex; gap:8px; margin: 4px 0 18px; }
+    .tab { flex:1; padding:12px; border-radius:12px; border:1.5px solid #d6dbe3; background:#fff; font-weight:700; font-size:14px; cursor:pointer; color:#475467; }
+    .tab.on { background:#0f172a; color:#fff; border-color:#0f172a; }
+    .req { color:#e11d48; font-weight:700; margin-left:4px; }
+    .ro-hint { font-size:12px; margin-top:6px; color:#64748b; }
+    .ro-hint.bad { color:#e11d48; font-weight:600; }
+    .box { border:1.5px solid #e2e8f0; border-radius:14px; padding:14px 16px; margin: 12px 0; background:#fff; font-size:13.5px; line-height:1.6; }
+    .box.ok { border-color:#86efac; background:#f0fdf4; }
+    .box.warn { border-color:#fca5a5; background:#fef2f2; }
+    .box.info { border-color:#bfdbfe; background:#eff6ff; }
+    .box b { font-weight:700; }
+    .kv { display:grid; grid-template-columns: 140px 1fr; gap:4px 12px; font-size:13.5px; }
+    .kv span:nth-child(odd) { color:#64748b; }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="title-box">
+        <h1 class="title">JLRK 수리비 지원 프로그램</h1>
+        <span class="title-sub">Repair Support · 신규 접수</span>
+      </div>
+    </header>
+
+    <div class="steps">
+      <div class="step"><b>① 접수</b><span>RO 번호 · 견적서 · 이메일 승인본</span></div>
+      <div class="step-arrow">›</div>
+      <div class="step"><b>② 마감 보고</b><span>인보이스 마감 금액 입력</span></div>
+      <div class="step-arrow">›</div>
+      <div class="step"><b>③ JLRK 대조</b><span>DMS 마감 자료와 자동 대조</span></div>
+      <div class="step-arrow">›</div>
+      <div class="step"><b>④ 지급</b><span>JLRK 검토 후</span></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-tab="new">① 새로 접수</button>
+      <button class="tab" data-tab="mine">내 티켓 조회 · ② 마감 보고</button>
+    </div>
+
+    <!-- ① 접수 -->
+    <div class="form-wrap" id="newWrap">
+      <p class="steps-note">
+        · <b>RO 번호가 없으면 접수되지 않습니다.</b> One DMS의 작업지시서 번호(예: RO2609000335)를 적어 주세요.<br>
+        · 같은 차량번호로 같은 날 두 번, 같은 지점·RO 번호로 두 번 접수할 수 없습니다. 이미 접수했다면 「내 티켓 조회」에서 그 건을 고쳐 주세요.<br>
+        · 모든 금액은 <b>부가세 제외(공급가)</b>로 적어 주세요.
+      </p>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">지점<span class="req">*</span></label>
+          <div class="select-wrap"><select id="workshop" class="select"><option value="">선택해 주세요</option></select></div>
+        </div>
+        <div class="field">
+          <label class="label">작성자명<span class="req">*</span><span class="label-sub">티켓 조회 때 씁니다</span></label>
+          <input id="author" class="date-input" placeholder="예: 김민수" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="label">차량번호<span class="req">*</span></label>
+          <input id="car" class="date-input" placeholder="예: 12가 3456" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="label">RO 번호<span class="req">*</span><span class="label-sub">필수</span></label>
+          <input id="ro" class="date-input" placeholder="RO2609000335" autocomplete="off" style="text-transform:uppercase">
+          <div id="roHint" class="ro-hint">RO + 숫자 10자리</div>
+        </div>
+        <div class="field">
+          <label class="label">수리 착수 예정일<span class="label-sub">선택</span></label>
+          <input id="planned" type="date" class="date-input">
+        </div>
+        <div class="field">
+          <label class="label">메모<span class="label-sub">특이사항이 있을 때만</span></label>
+          <input id="comment" class="date-input" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">견적 부품 금액<span class="req">*</span><span class="label-sub">견적서의 부품 · 할인 전 · 부가세 제외</span></label>
+          <input id="estParts" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="label">견적 공임 금액<span class="req">*</span><span class="label-sub">견적서의 공임 · 없으면 0</span></label>
+          <input id="estLabour" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="label">리테일러 지원금<span class="req">*</span><span class="label-sub">부가세 제외</span></label>
+          <input id="retailer" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="label">JLRK 지원금<span class="req">*</span><span class="label-sub">리테일러 지원금보다 클 수 없습니다</span></label>
+          <input id="jlrk" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">이메일 승인본<span class="req">*</span></label>
+        <div class="file-wrap">
+          <input type="file" id="approvalFile" class="file-input-hidden" accept="image/*,.pdf">
+          <button type="button" class="file-btn" data-pick="approvalFile">파일 선택</button>
+          <span class="file-name" id="approvalFileName">선택된 파일 없음</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">견적서<span class="req">*</span><span class="label-sub">One DMS 출력본(PDF) · 할인 미적용</span></label>
+        <div class="file-wrap">
+          <input type="file" id="estimateFile" class="file-input-hidden" accept=".pdf,image/*">
+          <button type="button" class="file-btn" data-pick="estimateFile">파일 선택</button>
+          <span class="file-name" id="estimateFileName">선택된 파일 없음</span>
+        </div>
+      </div>
+
+      <button id="saveBtn" class="save-btn">접수</button>
+      <div id="saveStatus" class="status"></div>
+      <div id="saveResult"></div>
+    </div>
+
+    <!-- 내 티켓 조회 · ② 마감 보고 -->
+    <div class="form-wrap hidden" id="mineWrap">
+      <div class="grid2">
+        <div class="field">
+          <label class="label">티켓번호</label>
+          <input id="lkTicket" class="date-input" placeholder="예: 261008AJSSR01" autocomplete="off" style="text-transform:uppercase">
+        </div>
+        <div class="field">
+          <label class="label">작성자명</label>
+          <input id="lkAuthor" class="date-input" placeholder="접수 때 적은 이름" autocomplete="off">
+        </div>
+      </div>
+      <button id="lkBtn" class="save-btn">조회</button>
+      <div id="lkStatus" class="status"></div>
+
+      <div id="ticketView" class="hidden">
+        <div class="box" id="ticketInfo"></div>
+        <div id="estimateBox"></div>
+
+        <div id="closeForm" class="hidden">
+          <p class="steps-note">
+            · <b>수리가 끝나고 인보이스를 마감한 뒤</b> 아래 세 금액을 적어 주세요. 모두 <b>부가세 제외</b>입니다.<br>
+            · JLRK가 One DMS 마감 자료(같은 지점·RO 번호)와 자동으로 맞춰 봅니다. 인보이스 PDF는 참고용(선택)입니다.
+          </p>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">고객 청구액<span class="req">*</span><span class="label-sub">인보이스 「일반」 합계(부품+공임)</span></label>
+              <input id="closeCustomer" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
+            </div>
+            <div class="field">
+              <label class="label">JLRK 지원금<span class="req">*</span><span class="label-sub">코리아 청구로 처리한 금액</span></label>
+              <input id="closeJlrk" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
+            </div>
+            <div class="field">
+              <label class="label">리테일러 부담<span class="req">*</span><span class="label-sub">리테일러가 할인한 금액</span></label>
+              <input id="closeRetailer" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
+            </div>
+            <div class="field">
+              <label class="label">최종 인보이스<span class="label-sub">선택 · PDF</span></label>
+              <div class="file-wrap">
+                <input type="file" id="invoiceFile" class="file-input-hidden" accept=".pdf,image/*">
+                <button type="button" class="file-btn" data-pick="invoiceFile">파일 선택</button>
+                <span class="file-name" id="invoiceFileName">선택된 파일 없음</span>
+              </div>
+            </div>
+          </div>
+          <button id="closeBtn" class="save-btn">마감 보고 저장</button>
+          <div id="closeStatus" class="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
