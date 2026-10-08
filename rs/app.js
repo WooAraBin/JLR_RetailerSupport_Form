@@ -2,7 +2,10 @@
 // 서버는 /api/rs2(새 표 rs2_requests). 첨부는 기존 /api/upload로 임시 경로에 올리고 서버가 옮긴다.
 const $ = (id) => document.getElementById(id);
 const RO_RE = /^RO\d{10}$/;
-const STATUS_LABEL = { received: '접수 완료', closed: '마감 보고 완료 · 대조 대기', review: '검토중', done: '검토 완료', paid: '지급 완료', cancelled: '취소' };
+// 티켓 상태 = 프로세스 5단계(10-08 보스). 폼으로 접수하면 1단계(이메일 승인)는 끝난 것이라 2단계부터 시작한다.
+const FLOW = ['1. 이메일 승인 요청', '2. 접수 진행', '3. 인보이스 마감 및 청구 진행', '4. JLRK 검토', '5. 지원금 지급'];
+const STEP_OF = { received: 1, closed: 2, review: 3, done: 3, paid: 4 };
+const STATUS_LABEL = { received: '2. 접수 진행', closed: '3. 인보이스 마감 및 청구 진행', review: '4. JLRK 검토', done: '4. JLRK 검토', paid: '5. 지원금 지급', cancelled: '취소' };
 
 const digits = (v) => String(v == null ? '' : v).replace(/[^\d]/g, '');
 const won = (v) => (v === null || v === undefined || v === '' ? '-' : Number(v).toLocaleString() + '원');
@@ -37,10 +40,10 @@ document.querySelectorAll('[data-pick]').forEach((btn) => {
 $('ro').addEventListener('input', () => {
   const v = $('ro').value.replace(/\s+/g, '').toUpperCase();
   const hint = $('roHint');
-  if (!v) { hint.textContent = 'RO + 숫자 10자리'; hint.className = 'ro-hint'; return; }
+  if (!v) { hint.textContent = '필수 · RO + 숫자 10자리'; hint.className = 'label-sub'; return; }
   const ok = RO_RE.test(v);
-  hint.textContent = ok ? '형식 확인' : '형식이 맞지 않습니다 — 예: RO2609000335 (RO + 숫자 10자리)';
-  hint.className = 'ro-hint' + (ok ? '' : ' bad');
+  hint.textContent = ok ? '필수 · 형식 확인 ✓' : '형식이 맞지 않습니다 — RO + 숫자 10자리';
+  hint.className = 'label-sub' + (ok ? '' : ' bad');
 });
 
 function setStatus(id, msg, type = '') {
@@ -138,9 +141,14 @@ let current = null;
 function renderTicket(row) {
   current = row;
   $('ticketView').classList.remove('hidden');
-  $('ticketInfo').innerHTML = `<div class="kv">
+  const step = row.status === 'cancelled' ? -1 : STEP_OF[row.status] ?? 1;
+  const flow = row.status === 'cancelled'
+    ? '<div class="flow5"><span class="on">취소된 티켓</span></div>'
+    : `<div class="flow5">${FLOW.map((f, i) => `<span class="${i < step ? 'done' : i === step ? 'on' : ''}">${f}</span>`).join('')}</div>`;
+  $('ticketInfo').innerHTML = flow + `<div class="kv" style="margin-top:10px">
     <span>티켓번호</span><b>${row.ticket_number}</b>
     <span>상태</span><b>${STATUS_LABEL[row.status] || row.status}</b>
+    <span>작성자</span><span>${row.author_name}</span>
     <span>지점 · RO</span><span>${row.workshop} · ${row.ro_number}</span>
     <span>차량번호</span><span>${row.vehicle_number}</span>
     <span>견적 부품 / 공임</span><span>${won(row.est_parts)} / ${won(row.est_labour)}</span>

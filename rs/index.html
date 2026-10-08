@@ -13,8 +13,11 @@
     .tab { flex:1; padding:12px; border-radius:12px; border:1.5px solid #d6dbe3; background:#fff; font-weight:700; font-size:14px; cursor:pointer; color:#475467; }
     .tab.on { background:#0f172a; color:#fff; border-color:#0f172a; }
     .req { color:#e11d48; font-weight:700; margin-left:4px; }
-    .ro-hint { font-size:12px; margin-top:6px; color:#64748b; }
-    .ro-hint.bad { color:#e11d48; font-weight:600; }
+    .label-sub.bad { color:#e11d48 !important; font-weight:700; }
+    .flow5 { display:flex; gap:6px; margin: 10px 0 4px; flex-wrap:wrap; }
+    .flow5 span { flex:1; min-width:150px; text-align:center; padding:8px 6px; border-radius:10px; font-size:12px; font-weight:700; background:#f1f5f9; color:#94a3b8; }
+    .flow5 span.done { background:#dbeafe; color:#1d4ed8; }
+    .flow5 span.on { background:#0f172a; color:#fff; }
     .box { border:1.5px solid #e2e8f0; border-radius:14px; padding:14px 16px; margin: 12px 0; background:#fff; font-size:13.5px; line-height:1.6; }
     .box.ok { border-color:#86efac; background:#f0fdf4; }
     .box.warn { border-color:#fca5a5; background:#fef2f2; }
@@ -27,7 +30,10 @@
     body { align-items: stretch !important; }
     .container { max-width: none !important; width: 100%; padding: 0 32px 40px; box-sizing: border-box; }
     .grid2 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-    .grid4 { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+    /* 한 줄의 칸 높이를 같게(10-08 보스 「박스 크기 튀지 않게」) */
+    .grid2, .grid4, .files2 { align-items: stretch !important; }
+    .field { justify-content: flex-start; }
+    .grid4 { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
     .files2 { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .save-btn { max-width: 360px; }
     .tabs { max-width: 720px; }
@@ -43,13 +49,15 @@
     </header>
 
     <div class="steps">
-      <div class="step"><b>① 접수</b><span>RO 번호 · 견적서 · 이메일 승인본</span></div>
+      <div class="step"><b>1. 이메일 승인 요청</b><span>JLRK에 이메일로 승인 요청</span></div>
       <div class="step-arrow">›</div>
-      <div class="step"><b>② 마감 보고</b><span>인보이스 마감 금액 입력</span></div>
+      <div class="step"><b>2. 접수 진행</b><span>RO 번호 · 견적서 · 승인 메일 첨부</span></div>
       <div class="step-arrow">›</div>
-      <div class="step"><b>③ JLRK 대조</b><span>DMS 마감 자료와 자동 대조</span></div>
+      <div class="step"><b>3. 인보이스 마감 및 청구 진행</b><span>마감 금액 입력(내 티켓 조회)</span></div>
       <div class="step-arrow">›</div>
-      <div class="step"><b>④ 지급</b><span>JLRK 검토 후</span></div>
+      <div class="step"><b>4. JLRK 검토</b><span>DMS 마감 자료와 대조</span></div>
+      <div class="step-arrow">›</div>
+      <div class="step"><b>5. 지원금 지급</b><span>검토 후 지급</span></div>
     </div>
 
     <div class="tabs">
@@ -79,9 +87,8 @@
           <input id="car" class="date-input" placeholder="예: 12가 3456" autocomplete="off">
         </div>
         <div class="field">
-          <label class="label">RO 번호<span class="req">*</span><span class="label-sub">필수</span></label>
+          <label class="label">RO 번호<span class="req">*</span><span class="label-sub" id="roHint">필수 · RO + 숫자 10자리</span></label>
           <input id="ro" class="date-input" placeholder="RO2609000335" autocomplete="off" style="text-transform:uppercase">
-          <div id="roHint" class="ro-hint">RO + 숫자 10자리</div>
         </div>
         <div class="field">
           <label class="label">수리 착수 예정일<span class="label-sub">선택</span></label>
