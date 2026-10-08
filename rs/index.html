@@ -23,6 +23,14 @@
     .kv { display:grid; grid-template-columns: 140px 1fr; gap:4px 12px; font-size:13.5px; }
     .kv span:nth-child(odd) { color:#64748b; }
     .hidden { display:none !important; }
+    /* 화면 전체 폭(10-08 보스 「PC로만 신청한다」) */
+    body { align-items: stretch !important; }
+    .container { max-width: none !important; width: 100%; padding: 0 32px 40px; box-sizing: border-box; }
+    .grid2 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    .grid4 { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+    .files2 { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .save-btn { max-width: 360px; }
+    .tabs { max-width: 720px; }
   </style>
 </head>
 <body>
@@ -85,7 +93,7 @@
         </div>
       </div>
 
-      <div class="grid2">
+      <div class="grid4">
         <div class="field">
           <label class="label">견적 부품 금액<span class="req">*</span><span class="label-sub">견적서의 부품 · 할인 전 · 부가세 제외</span></label>
           <input id="estParts" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
@@ -104,6 +112,7 @@
         </div>
       </div>
 
+      <div class="files2">
       <div class="field">
         <label class="label">이메일 승인본<span class="req">*</span></label>
         <div class="file-wrap">
@@ -119,6 +128,7 @@
           <button type="button" class="file-btn" data-pick="estimateFile">파일 선택</button>
           <span class="file-name" id="estimateFileName">선택된 파일 없음</span>
         </div>
+      </div>
       </div>
 
       <button id="saveBtn" class="save-btn">접수</button>
@@ -150,7 +160,7 @@
             · <b>수리가 끝나고 인보이스를 마감한 뒤</b> 아래 세 금액을 적어 주세요. 모두 <b>부가세 제외</b>입니다.<br>
             · JLRK가 One DMS 마감 자료(같은 지점·RO 번호)와 자동으로 맞춰 봅니다. 인보이스 PDF는 참고용(선택)입니다.
           </p>
-          <div class="grid2">
+          <div class="grid4">
             <div class="field">
               <label class="label">고객 청구액<span class="req">*</span><span class="label-sub">인보이스 「일반」 합계(부품+공임)</span></label>
               <input id="closeCustomer" class="date-input money" placeholder="0" inputmode="numeric" autocomplete="off">
